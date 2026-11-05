@@ -2,6 +2,7 @@ package dev.zaan.lagpanic.ui;
 
 import dev.zaan.lagpanic.Config;
 import dev.zaan.lagpanic.LagPanicClient;
+import dev.zaan.lagpanic.MemoryPressure;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
@@ -30,7 +31,7 @@ public final class SettingsScreen extends Screen {
         int w = Math.min(170, (width - 32) / 2);
         int left = width / 2 - w - 4;
         int right = width / 2 + 4;
-        int y = Math.max(32, height / 2 - 104);
+        int y = Math.max(22, height / 2 - 133);
         int row = 24;
 
         option(left, y, w, "Panic: " + (LagPanicClient.isActive() ? "ACTIVE" : "STANDBY"),
@@ -73,16 +74,25 @@ public final class SettingsScreen extends Screen {
         option(right, y + row * 6, w, "Debug HUD: " + bool(c.debugOverlay),
                 () -> c.debugOverlay = !c.debugOverlay);
 
+        option(left, y + row * 7, w, "Experimental GC: " + bool(c.allowExperimentalGc),
+                () -> c.allowExperimentalGc = !c.allowExperimentalGc);
+        option(right, y + row * 7, w, "GC threshold: " + c.gcThresholdPercent + "%",
+                () -> c.gcThresholdPercent = c.gcThresholdPercent >= 95 ? 70 : c.gcThresholdPercent + 5);
+
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
-                .bounds(width / 2 - 70, y + row * 7 + 1, 140, 20).build());
+                .bounds(width / 2 - 70, y + row * 8 + 2, 140, 20).build());
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mx, int my, float partialTick) {
         super.extractRenderState(graphics, mx, my, partialTick);
         graphics.centeredText(font, Component.literal("LAG PANIC  /  MIDNIGHT"),
-                width / 2, Math.max(14, height / 2 - 129), 0xFF77D3EF);
-        graphics.centeredText(font, Component.literal("F8 = panic  |  \\ = settings  |  Keys remappable"),
-                width / 2, Math.min(height - 12, height / 2 + 99), 0xFF8795A8);
+                width / 2, Math.max(7, height / 2 - 157), 0xFF77D3EF);
+        MemoryPressure.Heap heap = LagPanicClient.heap();
+        graphics.centeredText(font, Component.literal(
+                "JVM heap: " + heap.usedMiB() + " / " + heap.maxMiB() + " MiB (" + heap.percent() + "%)"),
+                width / 2, Math.min(height - 30, Math.max(18, height / 2 + 101)), 0xFF77D3EF);
+        graphics.centeredText(font, Component.literal("GC may freeze the game | F8 Panic | F9 Settings"),
+                width / 2, Math.min(height - 12, Math.max(28, height / 2 + 114)), 0xFF8795A8);
     }
 
     @Override public void onClose() { minecraft.gui.setScreen(parent); }
