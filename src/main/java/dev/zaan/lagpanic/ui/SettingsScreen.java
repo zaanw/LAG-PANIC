@@ -22,7 +22,7 @@ public final class SettingsScreen extends Screen {
         return addRenderableWidget(Button.builder(Component.literal(label), b -> {
             change.run();
             c.save();
-            rebuild();
+            rebuildWidgets();
         }).bounds(x, y, w, 20).build());
     }
     private String bool(boolean value) { return value ? "ON" : "OFF"; }
