@@ -1,5 +1,120 @@
-# Lag Panic
+# Lag Panic ⚡
 
-Fabric client-side emergency graphics profiles for Minecraft 26.3.
+Current development version: **0.3.0-beta.4**. This is not a tested stable release.
 
-Experimental development project by zaan. No performance improvements have yet been measured. Main branch intentionally holds only this placeholder until CI and gameplay testing.
+Experimental Minecraft **26.3** client-side Fabric mod, maintained by **zaan**.
+
+**Status: pending Minecraft runtime testing.** A green GitHub Actions build only verifies compilation/unit tests. No FPS increase or improved frame-time has been measured.
+
+## What it does
+
+Press **F8** to activate a temporary emergency graphics profile. Press **F8** again to restore previous settings. **Backslash (`\\`)** or **F9** opens settings (both keys can be rebound in Minecraft controls).
+
+Profiles:
+- **Light:** cap render distance at 12, entity distance at 0.8.
+- **Medium:** cap render distance at 8, entity distance at 0.65.
+- **Nuclear:** cap render distance at 4, entity distance at 0.5.
+- Particles and clouds are changed only when the profile would **reduce** quality; existing lower settings are preserved.
+- Numeric caps never increase a user's graphics settings.
+
+All controls are optional. Changes are spread across multiple client ticks and render distance is changed last. The latest settings are saved in `config/lagpanic.json`.
+
+A durable `config/lagpanic-recovery.json` backup is created **before** touching any graphics settings. Unexpected shutdown recovery runs at next game startup. If recovery fails, Lag Panic disables activation rather than risking another loss of settings.
+
+## Emergency visual suppression (experimental, beta.4)
+
+The optional **Hide Primed TNT** switch is OFF by default. With Panic Mode active,
+it skips visual rendering of already-lit TNT entities. TNT still exists, ticks,
+collides and explodes normally. It does NOT remove the physics/explosion CPU cost,
+nor does it hide explosion particles or TNT blocks in the world. On some renderer
+mods the mixin may not be compatible; runtime testing is required before release.
+Turning Panic OFF restores normal TNT visibility.
+
+The separate **Hide Explosions** switch (also OFF by default) suppresses vanilla
+explosion, explosion-emitter and flash particles during Panic. It does not suppress
+unrelated particles, TNT blocks, explosions' sounds, damage, physics, chunk updates,
+or particle effects added by other mods. It may reduce GPU particle work, but does
+not prevent the major CPU cost of detonating thousands of TNT. Both switches work
+only while Panic is active. Compatibility with modded renderers requires live testing.
+
+## Long-freeze diagnostics and simulation distance (beta.2)
+
+A low-overhead stall monitor now records client tick gaps of at least 750ms and
+shows their duration, count, and GC time observed since the last sample. JVM GC
+metrics are sampled only periodically or after a stall, not every frame.
+Coincident GC time **does not prove** GC caused the freeze; mod or chunk loading,
+disk IO, server thread, and native allocations remain possible causes.
+
+**Simulation distance reduction** is a NEW, optional, OFF-by-default feature.
+When enabled, Panic caps the simulation distance to Light=7, Medium=5 or
+Nuclear=4, only if already above that value. It is applied last and the original
+value is saved in the same crash-recovery backup. It can reduce tick workload in
+singleplayer (including modded entities), but cannot optimize a remote
+multiplayer server. It changes simulation behavior while active; not suitable for
+farms relying on distant ticking.
+
+## Adaptive performance (0.3.0 beta)
+
+The optional Auto Panic can now react to **sustained low FPS**, not only sudden
+client tick stalls. It records at most 120 intervals between in-world HUD
+render callbacks in a preallocated array and checks whether 80% or more of
+recent frames were slower than the configurable threshold (35 FPS by default).
+This captures sustained poor frame pacing without taking stack traces, scanning
+mods, allocating objects per frame or changing graphics at normal ~100 FPS.
+
+**Auto Panic remains OFF by default.** Enable it from the Performance page,
+then choose whether to trigger on sustained low FPS. A cooldown and a quiet
+recovery window reduce oscillations, and graphics changes remain staged. If
+render distance changes cause more stutter, disable that option.
+
+This is a dynamic reduction in rendering workload; it does not free all Java
+heap memory, improve server TPS or fix memory leaks in other mods. No FPS
+improvement has been benchmarked.
+
+## Automatic panic
+
+Auto mode is **off by default**. It looks for repeated large **delays between client ticks**; this is NOT GPU frame time or an FPS tracker.
+
+Configurable threshold, number of spikes, recovery stability duration, cooldown and staging interval. It does not constantly switch graphics on isolated spikes. Manual activation is never auto-restored. Auto-triggered panic is restored only after a stable interval.
+
+## JVM memory / experimental GC
+
+Lag Panic now displays **JVM heap used/max** in the settings screen and optional debug HUD.
+This does **not** represent total physical RAM, native memory, or video memory.
+There is no safe "clear all RAM" operation while Minecraft is running; live chunks, textures, and other game data remain allocated.
+
+**Experimental GC** is OFF by default. When explicitly enabled, a manual F8 activation
+can request `System.gc()` only if heap usage exceeds the configurable threshold
+(default 85% of max), and at most once per five minutes. Automatic Panic never
+requests GC. The JVM can ignore this hint; GC may introduce a significant pause.
+It does not promise lower resident RAM or higher FPS. The mod does not regularly
+force GC, touch other mods' caches, or override your JVM's Xmx value.
+
+## Debug HUD
+
+Optionally display active mode and latest delay between client ticks. Values are labeled honestly; the HUD does not diagnose the cause of lag.
+
+## Prism Launcher
+
+1. Create a test instance with Minecraft 26.3 and Fabric Loader.
+2. Add the matching Fabric API.
+3. Download the JAR from a **successful build** (GitHub Actions provides it inside a transport ZIP) and add **only the JAR** in Prism's Mods screen.
+4. Test in a backup world. Compare repeatable scenarios with F8 ON/OFF.
+
+The project has a **manual GitHub Release workflow** to publish the JAR directly after a verified in-game test. No release is created automatically.
+
+## Build
+
+Requires JDK 25 + Gradle 9.6: `gradle clean build`. A Gradle wrapper is not yet bundled. GitHub Actions builds the JAR and runs unit tests on commits and PRs.
+
+## Known limitations
+
+- Reducing render distance can itself cause a visible hitch and missing distant chunks during reload.
+- Does not diagnose the cause of performance problems, accelerate server TPS, or replace Sodium.
+- Different renderers/mods may override the same options; compatibility with Sodium is **not yet runtime-tested**.
+- Automated tests do not demonstrate an FPS improvement.
+- On short displays, settings may be cramped; UI game testing is pending.
+
+See [technical behavior](docs/BEHAVIOR.md) and [manual test checklist](docs/TESTING.md).
+
+MIT license.

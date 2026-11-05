@@ -1,0 +1,39 @@
+name: Publish beta prerelease
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  beta-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+      - name: Build and unit-test release commit
+        run: gradle clean build --stacktrace
+      - name: Publish beta with direct JAR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          MOD_VERSION="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          [[ "$MOD_VERSION" == *-beta.* ]] || { echo "Not a beta; skipping"; exit 0; }
+          TAG="v$MOD_VERSION"
+          JAR="build/libs/lagpanic-$MOD_VERSION.jar"
+          test -s "$JAR"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "$TAG exists; refusing to silently overwrite release"
+            exit 0
+          fi
+          gh release create "$TAG" "$JAR" \
+            --target "$GITHUB_SHA" \
+            --title "Lag Panic $TAG (Beta)" --prerelease \
+            --notes "Experimental beta for Minecraft 26.3 Fabric. F8 panic/restore; F9 settings; optional adaptive FPS mode, freeze diagnostics and opt-in hiding of primed TNT/explosion visuals. Visual suppression does NOT reduce TNT physics or explosion calculations. CI compilation and unit tests passed. Compatibility with large modpacks and the newest rendering mixins has NOT yet been established by a full Minecraft runtime test. Use a backup world."
