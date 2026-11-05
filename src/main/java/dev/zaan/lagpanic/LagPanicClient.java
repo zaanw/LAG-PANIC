@@ -1,6 +1,7 @@
 package dev.zaan.lagpanic;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.glfw.GLFW;
 import dev.zaan.lagpanic.ui.SettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -52,15 +53,15 @@ public final class LagPanicClient implements ClientModInitializer {
         config = Config.load();
         String category = "key.categories.lagpanic";
         KeyMapping panic = KeyBindingHelper.registerKeyBinding(
-                new KeyMapping("key.lagpanic.toggle", InputConstants.Type.KEYBOARD,
-                        InputConstants.KEY_F8, category));
+                new KeyMapping("key.lagpanic.toggle", InputConstants.Type.KEYSYM,
+                        GLFW.GLFW_KEY_F8, category));
         KeyMapping settings = KeyBindingHelper.registerKeyBinding(
-                new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYBOARD,
+                new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYSYM,
                         92, category));
 
         KeyMapping settingsFallback = KeyBindingHelper.registerKeyBinding(
-                new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYBOARD,
-                        InputConstants.KEY_F9, category));
+                new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYSYM,
+                        GLFW.GLFW_KEY_F9, category));
 
         HudRenderCallback.EVENT.register(
                 (graphics, tracker) -> {
