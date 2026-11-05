@@ -1,6 +1,5 @@
 package dev.zaan.lagpanic;
 
-/** Target limits, never raises a player's quality settings while panicking. */
 public record Preset(int renderDistance, double entityDistance) {
     public static Preset forName(String name) {
         return switch (name) {
