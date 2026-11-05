@@ -1,0 +1,21 @@
+name: 1.21.1 port shared core
+on:
+  push:
+    branches:
+      - 'port/1.21.1-fabric-neoforge'
+  workflow_dispatch:
+jobs:
+  java21-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Compile shared logic and test with Java 21
+        working-directory: ports/1.21.1
+        run: |
+          mkdir -p build/classes
+          javac -d build/classes common/src/main/java/dev/zaan/lagpanic/*.java common/src/test/java/dev/zaan/lagpanic/CommonSmokeTest.java
+          java -cp build/classes dev.zaan.lagpanic.CommonSmokeTest
