@@ -6,9 +6,9 @@
 
 - [x] Isolated GitHub branch `port/1.21.1-fabric-neoforge`
 - [x] Extracted loader-neutral spike detector, frame monitor, freeze diagnostics and presets
-- [ ] Run smoke tests in GitHub Actions (workflow provided; result must be checked)
-- [ ] Fabric 1.21.1 loader integration compiled and verified
-- [ ] NeoForge 1.21.1 loader integration compiled and verified
+- [x] Shared-core smoke tests passed on Java 21 in GitHub Actions
+- [x] Fabric 1.21.1 experimental F8 prototype compiled successfully (GitHub Actions; NOT tested in game)
+- [x] NeoForge 1.21.1 experimental F8 prototype compiled successfully (GitHub Actions; NOT tested in game)
 - [ ] Keybinds F8/F9 and settings UI parity
 - [ ] Crash-safe backup/restore across both loaders
 - [ ] TNT and explosion particle mixin mappings validated in game
@@ -36,3 +36,9 @@ java -cp /tmp/lagpanic-classes dev.zaan.lagpanic.CommonSmokeTest
 ```
 
 Run these commands from `ports/1.21.1`.
+
+## First CI build verification
+
+- Fabric and NeoForge **Gradle build** both passed: https://github.com/zaanw/LAG-PANIC/actions/runs/42078972117
+- The prototype currently supports **F8 only**, temporarily limiting render distance to Medium (8 chunks) with a file-backed recovery guard; F9 and automatic switching are not yet implemented.
+- These are experimental build artifacts, **not full parity ports**, and have **not undergone in-game testing**.
