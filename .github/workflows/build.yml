@@ -1,4 +1,4 @@
-name: Build Fabric mod
+name: Port validation (Fabric 1.21.1)
 on:
   push:
     branches: [main, 'feat/**']
@@ -11,13 +11,13 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '9.6.0'
+          gradle-version: '8.14.3'
       - run: gradle clean build --stacktrace
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: lagpanic-jar
+          name: lagpanic-fabric-1.21.1-unverified
           path: build/libs/lagpanic-*.jar
