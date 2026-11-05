@@ -21,6 +21,7 @@ public final class Config {
     public boolean changeEntityDistance = true;
     public boolean changeClouds = true;
     public boolean debugOverlay = false;
+    public boolean hidePrimedTnt = false; // visual-only, while Panic is active.
     // An explicit GC may cause stutter; users must opt in.
     public boolean allowExperimentalGc = false;
     public int gcThresholdPercent = 85;
