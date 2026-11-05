@@ -1,6 +1,5 @@
 package dev.zaan.lagpanic;
 
-/** Samples large delays between client ticks (not actual GPU frame time). */
 public final class SpikeDetector {
     private int spikes;
     private int lastGapMs;
