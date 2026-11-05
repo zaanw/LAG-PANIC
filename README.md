@@ -1,6 +1,6 @@
 # Lag Panic ⚡
 
-Current development version: **0.2.0-beta.2**. This is not a tested stable release.
+Current development version: **0.2.0-beta.3**. This is not a tested stable release.
 
 Experimental Minecraft **26.3** client-side Fabric mod, maintained by **zaan**.
 
@@ -26,6 +26,19 @@ A durable `config/lagpanic-recovery.json` backup is created **before** touching 
 Auto mode is **off by default**. It looks for repeated large **delays between client ticks**; this is NOT GPU frame time or an FPS tracker.
 
 Configurable threshold, number of spikes, recovery stability duration, cooldown and staging interval. It does not constantly switch graphics on isolated spikes. Manual activation is never auto-restored. Auto-triggered panic is restored only after a stable interval.
+
+## JVM memory / experimental GC
+
+Lag Panic now displays **JVM heap used/max** in the settings screen and optional debug HUD.
+This does **not** represent total physical RAM, native memory, or video memory.
+There is no safe "clear all RAM" operation while Minecraft is running; live chunks, textures, and other game data remain allocated.
+
+**Experimental GC** is OFF by default. When explicitly enabled, a manual F8 activation
+can request `System.gc()` only if heap usage exceeds the configurable threshold
+(default 85% of max), and at most once per five minutes. Automatic Panic never
+requests GC. The JVM can ignore this hint; GC may introduce a significant pause.
+It does not promise lower resident RAM or higher FPS. The mod does not regularly
+force GC, touch other mods' caches, or override your JVM's Xmx value.
 
 ## Debug HUD
 
