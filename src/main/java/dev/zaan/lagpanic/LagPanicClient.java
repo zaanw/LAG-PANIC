@@ -4,7 +4,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import dev.zaan.lagpanic.ui.SettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -51,14 +51,14 @@ public final class LagPanicClient implements ClientModInitializer {
     @Override public void onInitializeClient() {
         config = Config.load();
         String category = "key.categories.lagpanic";
-        KeyMapping panic = KeyMappingHelper.registerKeyMapping(
+        KeyMapping panic = KeyBindingHelper.registerKeyBinding(
                 new KeyMapping("key.lagpanic.toggle", InputConstants.Type.KEYBOARD,
                         InputConstants.KEY_F8, category));
-        KeyMapping settings = KeyMappingHelper.registerKeyMapping(
+        KeyMapping settings = KeyBindingHelper.registerKeyBinding(
                 new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYBOARD,
                         92, category));
 
-        KeyMapping settingsFallback = KeyMappingHelper.registerKeyMapping(
+        KeyMapping settingsFallback = KeyBindingHelper.registerKeyBinding(
                 new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYBOARD,
                         InputConstants.KEY_F9, category));
 
