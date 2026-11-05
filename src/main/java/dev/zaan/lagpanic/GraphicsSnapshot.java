@@ -22,6 +22,8 @@ public final class GraphicsSnapshot {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public int originalRender;
     public int appliedRender;
+    public int originalSimulation;
+    public int appliedSimulation;
     public double originalEntities;
     public double appliedEntities;
     public String originalParticles;
@@ -37,12 +39,22 @@ public final class GraphicsSnapshot {
     public static GraphicsSnapshot prepare(Options o, Config c) {
         GraphicsSnapshot s = new GraphicsSnapshot();
         s.originalRender = o.renderDistance().get();
+        s.originalSimulation = o.simulationDistance().get();
         s.originalEntities = o.entityDistanceScaling().get();
         s.originalParticles = o.particles().get().name();
         s.originalClouds = o.cloudStatus().get().name();
         Preset p = Preset.forName(c.profile);
         s.appliedRender = c.changeRenderDistance
                 ? Math.min(s.originalRender, p.renderDistance()) : s.originalRender;
+        // Simulation distance controls ticking load primarily in singleplayer / integrated server.
+        // Not a client-side server TPS cheat on multiplayer servers.
+        int simulationCap = switch (c.profile) {
+            case "Light" -> 7;
+            case "Nuclear" -> 4;
+            default -> 5;
+        };
+        s.appliedSimulation = c.changeSimulationDistance
+                ? Math.min(s.originalSimulation, simulationCap) : s.originalSimulation;
         s.appliedEntities = c.changeEntityDistance
                 ? Math.min(s.originalEntities, p.entityDistance()) : s.originalEntities;
 
@@ -87,6 +99,11 @@ public final class GraphicsSnapshot {
                 if (originalRender != appliedRender && o.renderDistance().get() == originalRender)
                     o.renderDistance().set(appliedRender);
             }
+            case 4 -> {
+                if (originalSimulation != appliedSimulation
+                        && o.simulationDistance().get() == originalSimulation)
+                    o.simulationDistance().set(appliedSimulation);
+            }
             default -> throw new IllegalArgumentException("Unknown application step: " + step);
         }
     }
@@ -97,6 +114,9 @@ public final class GraphicsSnapshot {
      * player's own changes while Panic was active).
      */
     public void recover(Options o) {
+        if (originalSimulation != appliedSimulation && originalSimulation >= 2
+                && o.simulationDistance().get() == appliedSimulation)
+            o.simulationDistance().set(originalSimulation);
         if (originalRender != appliedRender && o.renderDistance().get() == appliedRender)
             o.renderDistance().set(originalRender);
         if (originalEntities != appliedEntities
