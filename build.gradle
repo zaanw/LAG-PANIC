@@ -1,16 +1,19 @@
-plugins { id 'net.fabricmc.fabric-loom' version "${loom_version}" }
+plugins { id 'fabric-loom' version "${loom_version}" }
 version = project.mod_version
 group = project.maven_group
 base { archivesName = project.archives_base_name }
 dependencies {
+    mappings loom.officialMojangMappings()
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
-java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
-tasks.withType(JavaCompile).configureEach { options.release = 25; options.encoding = 'UTF-8' }
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+loom { runs { client { client() } } }
+
+tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
 test { useJUnitPlatform() }
 processResources {
     inputs.property 'version', project.version
