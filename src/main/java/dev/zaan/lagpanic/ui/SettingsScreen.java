@@ -3,7 +3,7 @@ package dev.zaan.lagpanic.ui;
 import dev.zaan.lagpanic.Config;
 import dev.zaan.lagpanic.LagPanicClient;
 import dev.zaan.lagpanic.MemoryPressure;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -22,7 +22,7 @@ public final class SettingsScreen extends Screen {
         return addRenderableWidget(Button.builder(Component.literal(label), b -> {
             change.run();
             c.save();
-            rebuildWidgets();
+            rebuild();
         }).bounds(x, y, w, 20).build());
     }
     private String bool(boolean value) { return value ? "ON" : "OFF"; }
@@ -117,9 +117,9 @@ public final class SettingsScreen extends Screen {
                 .bounds(right, y + row * 8 + 2, w, 20).build());
     }
 
-    @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mx, int my, float partialTick) {
+    @Override public void render(GuiGraphics graphics, int mx, int my, float partialTick) {
         super.extractRenderState(graphics, mx, my, partialTick);
-        graphics.centeredText(font, Component.literal(performancePage ? "LAG PANIC  /  PERFORMANCE" : "LAG PANIC  /  MIDNIGHT"),
+        graphics.drawCenteredString(font, Component.literal(performancePage ? "LAG PANIC  /  PERFORMANCE" : "LAG PANIC  /  MIDNIGHT"),
                 width / 2, Math.max(7, height / 2 - 157), 0xFF77D3EF);
         MemoryPressure.Heap heap = LagPanicClient.heap();
         graphics.centeredText(font, Component.literal(
@@ -133,5 +133,5 @@ public final class SettingsScreen extends Screen {
                 width / 2, Math.min(height - 12, Math.max(28, height / 2 + 114)), 0xFF8795A8);
     }
 
-    @Override public void onClose() { minecraft.gui.setScreen(parent); }
+    @Override public void onClose() { minecraft.setScreen(parent); }
 }
