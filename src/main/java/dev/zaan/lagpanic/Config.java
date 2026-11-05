@@ -16,6 +16,7 @@ public final class Config {
     public int lowFpsThreshold = 35;
     public boolean restoreAutomatically = true;
     public boolean changeRenderDistance = true;
+    public boolean changeSimulationDistance = false; // Opt-in: can alter integrated server/world tick load.
     public boolean changeParticles = true;
     public boolean changeEntityDistance = true;
     public boolean changeClouds = true;
