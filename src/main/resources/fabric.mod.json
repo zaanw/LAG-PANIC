@@ -1,0 +1,8 @@
+{
+  "schemaVersion":1,"id":"lagpanic","version":"${version}",
+  "name":"Lag Panic",
+  "description":"Manual and automatic temporary emergency graphics profiles, with safe restoration.",
+  "authors":["zaan"],"license":"MIT","environment":"client",
+  "entrypoints":{"client":["dev.zaan.lagpanic.LagPanicClient"]},
+  "depends":{"fabricloader":">=0.19.5","minecraft":"26.3","java":">=25","fabric-api":"*"}
+}
