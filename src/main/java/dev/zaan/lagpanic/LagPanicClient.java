@@ -31,6 +31,9 @@ public final class LagPanicClient implements ClientModInitializer {
     private static int stageWait = 0;
 
     public static boolean isActive() { return active; }
+    public static boolean shouldHidePrimedTnt() {
+        return active && config != null && config.hidePrimedTnt;
+    }
     public static int latestTickPauseMs() { return DETECTOR.lastGapMs(); }
     public static MemoryPressure.Heap heap() {
         if (cachedHeap == null) cachedHeap = MemoryPressure.sample();
