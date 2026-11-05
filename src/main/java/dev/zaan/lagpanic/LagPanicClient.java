@@ -40,7 +40,7 @@ public final class LagPanicClient implements ClientModInitializer {
                         InputConstants.KEY_F8, category));
         KeyMapping settings = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYBOARD,
-                        org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSLASH, category));
+                        92, category)); // GLFW_KEY_BACKSLASH (keyboard layout dependent)
 
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("lagpanic", "debug"),
