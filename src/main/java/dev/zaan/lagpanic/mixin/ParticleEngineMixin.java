@@ -10,12 +10,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * Prevent the standard vanilla explosion/flash particle from being instantiated
- * while Panic is active AND the opt-in setting is enabled. Rendering-only:
- * explosion damage, knockback, and block destruction are unchanged.
- * Does not suppress unrelated mod particles or generic smoke.
- */
 @Mixin(ParticleEngine.class)
 public abstract class ParticleEngineMixin {
     @Inject(method = "createParticle", at = @At("HEAD"), cancellable = true)
