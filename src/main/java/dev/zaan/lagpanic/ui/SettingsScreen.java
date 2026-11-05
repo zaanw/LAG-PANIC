@@ -81,7 +81,7 @@ public final class SettingsScreen extends Screen {
         super.extractRenderState(graphics, mx, my, partialTick);
         graphics.centeredText(font, Component.literal("LAG PANIC  /  MIDNIGHT"),
                 width / 2, Math.max(14, height / 2 - 129), 0xFF77D3EF);
-        graphics.centeredText(font, Component.literal("F8 = toggle  |  Change key in Minecraft controls"),
+        graphics.centeredText(font, Component.literal("F8 = panic  |  \\ = settings  |  Keys remappable"),
                 width / 2, Math.min(height - 12, height / 2 + 99), 0xFF8795A8);
     }
 
