@@ -19,6 +19,16 @@ This is a **client-only graphics profile manager**, NOT a renderer optimization.
 - Menus pause sampling; it does not sample exact GPU frame durations.
 - Per-setting staged application reduces simultaneous changes but **cannot guarantee that no stutter occurs**.
 
+## Memory safeguards
+
+The optional debug HUD / settings show only Java heap occupancy (used, committed and
+maximum). This is not OS process RAM. By default no GC calls are made.
+If the user explicitly enables experimental GC, then **manual** F8 panic may issue a
+single System.gc() request at high memory pressure (85% of Xmx by default), respecting
+a five-minute cooldown. It is issued from a short daemon thread to avoid making
+the GC call on the client tick; JVM collector stop-the-world pauses can still freeze
+the client. Automatic panic never requests GC. Do not promise lower physical RAM.
+
 ## Config
 `config/lagpanic.json` — all preferences saved as JSON.
 `config/lagpanic-recovery.json` — crash recovery record, should not be manually edited or deleted while Panic is active.
