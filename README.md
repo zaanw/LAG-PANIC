@@ -6,7 +6,7 @@ Experimental Minecraft **26.3** client-side Fabric mod, maintained by **zaan**.
 
 ## What it does
 
-Press **F8** to activate a temporary emergency graphics profile. Press **F8** again to restore previous settings. **Right Shift** opens settings (both keys can be rebound in Minecraft controls).
+Press **F8** to activate a temporary emergency graphics profile. Press **F8** again to restore previous settings. **Backslash (`\\`)** opens settings (both keys can be rebound in Minecraft controls).
 
 Profiles:
 - **Light:** cap render distance at 12, entity distance at 0.8.
