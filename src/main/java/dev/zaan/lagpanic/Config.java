@@ -17,6 +17,9 @@ public final class Config {
     public boolean changeEntityDistance = true;
     public boolean changeClouds = true;
     public boolean debugOverlay = false;
+    // An explicit GC may cause stutter; users must opt in.
+    public boolean allowExperimentalGc = false;
+    public int gcThresholdPercent = 85;
     public String profile = "Medium";
     public int spikeThresholdMs = 250;
     public int spikesToTrigger = 3;
@@ -32,6 +35,7 @@ public final class Config {
         stableSecondsToRestore = Math.max(20, Math.min(300, stableSecondsToRestore));
         autoCooldownSeconds = Math.max(30, Math.min(600, autoCooldownSeconds));
         stageIntervalTicks = Math.max(1, Math.min(40, stageIntervalTicks));
+        gcThresholdPercent = MemoryPressure.clampThreshold(gcThresholdPercent);
     }
     static Path path() {
         return FabricLoader.getInstance().getConfigDir().resolve("lagpanic.json");
