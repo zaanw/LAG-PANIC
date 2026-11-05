@@ -1,6 +1,6 @@
 # Lag Panic ⚡
 
-Current development version: **0.3.0-beta.3**. This is not a tested stable release.
+Current development version: **0.3.0-beta.4**. This is not a tested stable release.
 
 Experimental Minecraft **26.3** client-side Fabric mod, maintained by **zaan**.
 
@@ -21,7 +21,7 @@ All controls are optional. Changes are spread across multiple client ticks and r
 
 A durable `config/lagpanic-recovery.json` backup is created **before** touching any graphics settings. Unexpected shutdown recovery runs at next game startup. If recovery fails, Lag Panic disables activation rather than risking another loss of settings.
 
-## Hide Primed TNT (experimental, beta.3)
+## Emergency visual suppression (experimental, beta.4)
 
 The optional **Hide Primed TNT** switch is OFF by default. With Panic Mode active,
 it skips visual rendering of already-lit TNT entities. TNT still exists, ticks,
@@ -29,6 +29,13 @@ collides and explodes normally. It does NOT remove the physics/explosion CPU cos
 nor does it hide explosion particles or TNT blocks in the world. On some renderer
 mods the mixin may not be compatible; runtime testing is required before release.
 Turning Panic OFF restores normal TNT visibility.
+
+The separate **Hide Explosions** switch (also OFF by default) suppresses vanilla
+explosion, explosion-emitter and flash particles during Panic. It does not suppress
+unrelated particles, TNT blocks, explosions' sounds, damage, physics, chunk updates,
+or particle effects added by other mods. It may reduce GPU particle work, but does
+not prevent the major CPU cost of detonating thousands of TNT. Both switches work
+only while Panic is active. Compatibility with modded renderers requires live testing.
 
 ## Long-freeze diagnostics and simulation distance (beta.2)
 
