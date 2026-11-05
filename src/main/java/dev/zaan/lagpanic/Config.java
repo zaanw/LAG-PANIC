@@ -7,23 +7,22 @@ import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import net.fabricmc.loader.api.FabricLoader;
 
-/** Saved user preferences; defaults favor manual mode and predictable behavior. */
 public final class Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public boolean auto = false;
-    // Only evaluates frames when Auto is enabled; no render settings are changed at high FPS.
+
     public boolean autoWhenSlowFps = true;
     public int lowFpsThreshold = 35;
     public boolean restoreAutomatically = true;
     public boolean changeRenderDistance = true;
-    public boolean changeSimulationDistance = false; // Opt-in: can alter integrated server/world tick load.
+    public boolean changeSimulationDistance = false;
     public boolean changeParticles = true;
     public boolean changeEntityDistance = true;
     public boolean changeClouds = true;
     public boolean debugOverlay = false;
-    public boolean hidePrimedTnt = false; // visual-only, while Panic is active.
-    public boolean hideExplosionParticles = false; // suppresses only vanilla explosion effects.
-    // An explicit GC may cause stutter; users must opt in.
+    public boolean hidePrimedTnt = false;
+    public boolean hideExplosionParticles = false;
+
     public boolean allowExperimentalGc = false;
     public int gcThresholdPercent = 85;
     public String profile = "Medium";
