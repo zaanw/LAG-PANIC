@@ -52,6 +52,8 @@ public final class SettingsScreen extends Screen {
                     () -> c.gcThresholdPercent = c.gcThresholdPercent >= 95 ? 70 : c.gcThresholdPercent + 5);
             option(right, y + row * 4, w, "Stable: " + c.stableSecondsToRestore + "s",
                     () -> c.stableSecondsToRestore = c.stableSecondsToRestore >= 300 ? 20 : c.stableSecondsToRestore + 10);
+            option(left, y + row * 5, w, "Simulation dist: " + bool(c.changeSimulationDistance),
+                    () -> c.changeSimulationDistance = !c.changeSimulationDistance);
             addRenderableWidget(Button.builder(Component.literal("< Back"), b -> {
                 performancePage = false;
                 rebuildWidgets();
@@ -121,7 +123,9 @@ public final class SettingsScreen extends Screen {
                 "JVM heap: " + heap.usedMiB() + " / " + heap.maxMiB() + " MiB (" + heap.percent() + "%)"),
                 width / 2, Math.min(height - 30, Math.max(18, height / 2 + 101)), 0xFF77D3EF);
         graphics.centeredText(font, Component.literal(performancePage
-                    ? "Auto reacts to sustained low FPS | GC may cause stutter"
+                    ? "Stalls: " + LagPanicClient.diagnostics().count()
+                        + " | Last: " + LagPanicClient.diagnostics().lastPauseMillis()
+                        + "ms | GC observed: " + LagPanicClient.diagnostics().lastGcDeltaMillis() + "ms"
                     : "F8 Panic | F9 Settings | Performance >"),
                 width / 2, Math.min(height - 12, Math.max(28, height / 2 + 114)), 0xFF8795A8);
     }
