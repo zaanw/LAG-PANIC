@@ -8,7 +8,7 @@ class FrameMonitorTest {
         FrameMonitor m = new FrameMonitor();
         long t = 1_000_000_000L;
         for (int i = 0; i < 200; i++) {
-            t += 10_000_000L; // ~100 FPS
+            t += 10_000_000L;
             m.sample(t);
         }
         assertTrue(m.estimatedFps() >= 95);
@@ -18,7 +18,7 @@ class FrameMonitorTest {
         FrameMonitor m = new FrameMonitor();
         long t = 1_000_000_000L;
         for (int i = 0; i < 140; i++) {
-            t += 50_000_000L; // ~20 FPS
+            t += 50_000_000L;
             m.sample(t);
         }
         assertEquals(20, m.estimatedFps());
@@ -32,7 +32,7 @@ class FrameMonitorTest {
             t += 10_000_000L;
             m.sample(t);
         }
-        m.sample(t + 2_000_000_000L); // alt-tab or a large single freeze
+        m.sample(t + 2_000_000_000L);
         assertEquals(0, m.sampleCount());
         assertFalse(m.sustainedLowFps(35));
         for (int i = 0; i < 20; i++) {
