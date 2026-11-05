@@ -1,0 +1,21 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="MIT"
+[[mods]]
+modId="lagpanic"
+version="0.3.0-port.1"
+displayName="Lag Panic (1.21.1 experimental)"
+authors="zaan"
+description='''Experimental manual Panic Mode port. F8 changes render distance with crash recovery.'''
+[[dependencies.lagpanic]]
+modId="neoforge"
+type="required"
+versionRange="[21.1,)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.lagpanic]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.21.2)"
+ordering="NONE"
+side="BOTH"
