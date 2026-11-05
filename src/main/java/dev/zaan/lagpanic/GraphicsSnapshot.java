@@ -2,19 +2,21 @@ package dev.zaan.lagpanic;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.CloudStatus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
-import net.minecraft.client.CloudStatus;
 import net.minecraft.server.level.ParticleStatus;
-import net.fabricmc.loader.api.FabricLoader;
-import java.nio.file.Files;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 
 /**
- * Durable recovery record: if the game crashes in panic mode, original values
- * can be recovered at next startup. Never overwrites an option the user has
- * changed manually after panic was applied.
+ * Captures exactly the settings we might change. The recovery file containing
+ * intended targets MUST be committed BEFORE the first graphics modification.
  */
 public final class GraphicsSnapshot {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -27,77 +29,129 @@ public final class GraphicsSnapshot {
     public String originalClouds;
     public String appliedClouds;
 
-    static Path backupPath() { return FabricLoader.getInstance().getConfigDir().resolve("lagpanic-recovery.json"); }
+    static Path backupPath() {
+        return FabricLoader.getInstance().getConfigDir().resolve("lagpanic-recovery.json");
+    }
+    public static boolean hasPendingBackup() { return Files.exists(backupPath()); }
 
-    public static GraphicsSnapshot capture(Options o) {
+    public static GraphicsSnapshot prepare(Options o, Config c) {
         GraphicsSnapshot s = new GraphicsSnapshot();
         s.originalRender = o.renderDistance().get();
-        s.appliedRender = s.originalRender;
         s.originalEntities = o.entityDistanceScaling().get();
-        s.appliedEntities = s.originalEntities;
         s.originalParticles = o.particles().get().name();
-        s.appliedParticles = s.originalParticles;
         s.originalClouds = o.cloudStatus().get().name();
-        s.appliedClouds = s.originalClouds;
+        Preset p = Preset.forName(c.profile);
+        s.appliedRender = c.changeRenderDistance
+                ? Math.min(s.originalRender, p.renderDistance()) : s.originalRender;
+        s.appliedEntities = c.changeEntityDistance
+                ? Math.min(s.originalEntities, p.entityDistance()) : s.originalEntities;
+
+        // Never upgrade MINIMAL to DECREASED or clouds OFF to FAST.
+        ParticleStatus particles = o.particles().get();
+        ParticleStatus particleTarget = "Light".equals(c.profile)
+                ? ParticleStatus.DECREASED : ParticleStatus.MINIMAL;
+        s.appliedParticles = c.changeParticles && particles.ordinal() < particleTarget.ordinal()
+                ? particleTarget.name() : particles.name();
+
+        CloudStatus clouds = o.cloudStatus().get();
+        CloudStatus cloudTarget = "Light".equals(c.profile)
+                ? CloudStatus.FAST : CloudStatus.OFF;
+        s.appliedClouds = c.changeClouds && clouds.ordinal() > cloudTarget.ordinal()
+                ? cloudTarget.name() : clouds.name();
         return s;
     }
 
-    public void apply(Options o, Config c) {
-        Preset preset = Preset.forName(c.profile);
-        if (c.changeRenderDistance) {
-            appliedRender = Math.min(originalRender, preset.renderDistance());
-            o.renderDistance().set(appliedRender);
-        }
-        if (c.changeEntityDistance) {
-            appliedEntities = Math.min(originalEntities, preset.entityDistance());
-            o.entityDistanceScaling().set(appliedEntities);
-        }
-        if (c.changeParticles) {
-            appliedParticles = "Light".equals(c.profile) ? ParticleStatus.DECREASED.name() : ParticleStatus.MINIMAL.name();
-            o.particles().set(ParticleStatus.valueOf(appliedParticles));
-        }
-        if (c.changeClouds) {
-            appliedClouds = "Light".equals(c.profile) ? CloudStatus.FAST.name() : CloudStatus.OFF.name();
-            o.cloudStatus().set(CloudStatus.valueOf(appliedClouds));
+    /**
+     * One option per invocation, spread over multiple ticks to avoid applying
+     * all costly changes simultaneously. A manual change made before this step
+     * is respected.
+     */
+    public void applyStep(Options o, int step) {
+        switch (step) {
+            case 0 -> {
+                if (!originalParticles.equals(appliedParticles)
+                        && o.particles().get().name().equals(originalParticles))
+                    o.particles().set(ParticleStatus.valueOf(appliedParticles));
+            }
+            case 1 -> {
+                if (!originalClouds.equals(appliedClouds)
+                        && o.cloudStatus().get().name().equals(originalClouds))
+                    o.cloudStatus().set(CloudStatus.valueOf(appliedClouds));
+            }
+            case 2 -> {
+                if (originalEntities != appliedEntities
+                        && Math.abs(o.entityDistanceScaling().get() - originalEntities) < 0.000001)
+                    o.entityDistanceScaling().set(appliedEntities);
+            }
+            case 3 -> {
+                if (originalRender != appliedRender && o.renderDistance().get() == originalRender)
+                    o.renderDistance().set(appliedRender);
+            }
+            default -> throw new IllegalArgumentException("Unknown application step: " + step);
         }
     }
 
+    /**
+     * Restore only values that still equal the ones Lag Panic applied.
+     * Unchanged options are NEVER restored (otherwise we'd overwrite the
+     * player's own changes while Panic was active).
+     */
     public void recover(Options o) {
-        if (o.renderDistance().get() == appliedRender) o.renderDistance().set(originalRender);
-        if (Math.abs(o.entityDistanceScaling().get() - appliedEntities) < 0.000001)
+        if (originalRender != appliedRender && o.renderDistance().get() == appliedRender)
+            o.renderDistance().set(originalRender);
+        if (originalEntities != appliedEntities
+                && Math.abs(o.entityDistanceScaling().get() - appliedEntities) < 0.000001)
             o.entityDistanceScaling().set(originalEntities);
-        if (o.particles().get().name().equals(appliedParticles))
+        if (!originalParticles.equals(appliedParticles)
+                && o.particles().get().name().equals(appliedParticles))
             o.particles().set(ParticleStatus.valueOf(originalParticles));
-        if (o.cloudStatus().get().name().equals(appliedClouds))
+        if (!originalClouds.equals(appliedClouds)
+                && o.cloudStatus().get().name().equals(appliedClouds))
             o.cloudStatus().set(CloudStatus.valueOf(originalClouds));
     }
 
-    public void persist() {
-        try {
-            Path p = backupPath();
-            Files.createDirectories(p.getParent());
-            Files.writeString(p, GSON.toJson(this), StandardCharsets.UTF_8);
-        } catch (Exception e) { System.err.println("[LagPanic] Recovery backup failed: " + e); }
-    }
-
-    public static boolean restorePending(Minecraft mc) {
+    /** Fail closed: if persistence fails, DO NOT change any graphics option. */
+    public boolean persist() {
         Path p = backupPath();
-        if (!Files.exists(p)) return false;
+        Path tmp = p.resolveSibling(p.getFileName() + ".tmp");
         try {
-            GraphicsSnapshot s = GSON.fromJson(Files.readString(p, StandardCharsets.UTF_8), GraphicsSnapshot.class);
-            if (s == null) return false;
-            s.recover(mc.options);
-            mc.options.save();
-            Files.deleteIfExists(p);
+            Files.createDirectories(p.getParent());
+            Files.writeString(tmp, GSON.toJson(this), StandardCharsets.UTF_8);
+            try {
+                Files.move(tmp, p, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException ignored) {
+                Files.move(tmp, p, StandardCopyOption.REPLACE_EXISTING);
+            }
             return true;
-        } catch (Exception e) {
-            System.err.println("[LagPanic] Could not recover graphics; backup retained: " + e);
+        } catch (IOException e) {
+            System.err.println("[LagPanic] Cannot write backup, refusing to activate: " + e);
             return false;
         }
     }
 
-    public static void clearBackup() {
-        try { Files.deleteIfExists(backupPath()); }
-        catch (Exception e) { System.err.println("[LagPanic] Backup cleanup failed: " + e); }
+    public static boolean restorePending(Minecraft mc) {
+        Path p = backupPath();
+        if (!Files.exists(p)) return true;
+        try {
+            GraphicsSnapshot s = GSON.fromJson(Files.readString(p, StandardCharsets.UTF_8), GraphicsSnapshot.class);
+            if (s == null || s.originalClouds == null || s.appliedClouds == null
+                    || s.originalParticles == null || s.appliedParticles == null)
+                throw new IOException("Invalid recovery data");
+            s.recover(mc.options);
+            mc.options.save();
+            Files.delete(p);
+            return true;
+        } catch (Exception e) {
+            System.err.println("[LagPanic] Recovery failed; backup kept, activation blocked: " + e);
+            return false;
+        }
+    }
+
+    public static boolean clearBackup() {
+        try { Files.deleteIfExists(backupPath()); return true; }
+        catch (IOException e) {
+            System.err.println("[LagPanic] Failed deleting backup; recovery will retry on next startup: " + e);
+            return false;
+        }
     }
 }
