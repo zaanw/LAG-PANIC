@@ -15,7 +15,7 @@ Use a disposable Minecraft 26.3 Fabric profile in Prism Launcher, ideally in a c
 - Simulate sudden process termination ONLY on a **disposable test instance**, then restart and verify backup restoration.
 - Leave a world while Panic is active: original settings should return.
 - Test profile changes, independent toggles, threshold, cooldown, stage ticks and HUD.
-- Rebind F8 and Right Shift via Minecraft key controls.
+- Rebind F8 and backslash (`\\`) via Minecraft key controls.
 - Try a dedicated server without installing Lag Panic on the server.
 - Test with Sodium installed and not installed; record compatibility honestly.
 
