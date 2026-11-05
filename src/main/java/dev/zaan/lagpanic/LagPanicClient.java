@@ -3,6 +3,8 @@ package dev.zaan.lagpanic;
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.zaan.lagpanic.ui.SettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
@@ -21,6 +23,7 @@ public final class LagPanicClient implements ClientModInitializer {
     private static boolean autoActivated;
     private static long activatedAt;
     private static long lastAutomaticChange;
+    private static boolean openSettingsRequested;
     private static int stage = 0;
     private static int stageWait = 0;
 
@@ -47,6 +50,14 @@ public final class LagPanicClient implements ClientModInitializer {
                         InputConstants.KEY_F9, category));
 
 
+        // Also accessible as a client-only command, unaffected by keyboard layout.
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
+            dispatcher.register(literal("lagpanic").executes(context -> {
+                openSettingsRequested = true;
+                return 1;
+            }))
+        );
+
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("lagpanic", "debug"),
                 (graphics, tracker) -> {
@@ -67,6 +78,10 @@ public final class LagPanicClient implements ClientModInitializer {
             while (panic.consumeClick()) toggle(client);
             while (settings.consumeClick()) openSettings(client);
             while (settingsFallback.consumeClick()) openSettings(client);
+            if (openSettingsRequested) {
+                openSettingsRequested = false;
+                openSettings(client);
+            }
             tick(client);
         });
     }
