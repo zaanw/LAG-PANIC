@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "lagpanic",
+  "version": "${version}",
+  "name": "Lag Panic (1.21.1 experimental)",
+  "description": "Experimental manual Panic Mode port. F8 changes render distance with crash recovery.",
+  "authors": ["zaan"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.zaan.lagpanic.fabric.LagPanicFabric1211"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.14",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
