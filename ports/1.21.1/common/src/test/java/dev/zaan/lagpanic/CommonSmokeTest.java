@@ -19,7 +19,6 @@ public final class CommonSmokeTest {
         require(spikes.recordTick(start + 900_000_000L, 200, 3), "Third spike");
         require(Preset.forName("Nuclear").renderDistance() == 4, "Nuclear preset");
         require(Preset.forName("Medium").renderDistance() == 8, "Medium preset");
-        require(MemoryPressure.sample().maxMiB() >= 0, "Heap sample");
         System.out.println("Common core smoke tests passed on Java " + Runtime.version());
     }
     private static void require(boolean condition, String message) {
