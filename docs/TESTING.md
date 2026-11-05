@@ -19,6 +19,15 @@ Use a disposable Minecraft 26.3 Fabric profile in Prism Launcher, ideally in a c
 - Try a dedicated server without installing Lag Panic on the server.
 - Test with Sodium installed and not installed; record compatibility honestly.
 
+## Simulation distance / freeze diagnostics tests
+
+- Confirm Simulation dist is OFF by default. With it OFF, F8 must not touch simulation distance.
+- On a **backup singleplayer world**, enable the option, set vanilla simulation distance above 7, use F8 with Medium; verify cap 5. Disable Panic; verify original value returns.
+- Press F8 rapidly during staging; confirm that original options survive.
+- With a test world saved, force-close after Panic and verify recovery after restart.
+- Enable HUD and inspect number/duration of stalls after a >750ms pause. The GC correlation is informational, not a diagnosis.
+- Compare baseline RAM usage, integrated-server TPS, and frame-time p99 with each new option ON/OFF.
+
 ## Adaptive frame pacing tests
 
 - With Auto ON and threshold 35 FPS, verify stable ~100 FPS does not activate.
