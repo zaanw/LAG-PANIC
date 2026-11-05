@@ -5,6 +5,11 @@ import dev.zaan.lagpanic.ui.SettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
+import net.fabricmc.fabric.api.client.screen.v1.Screens;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.PauseScreen;
+import net.minecraft.network.chat.Component;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
@@ -42,6 +47,16 @@ public final class LagPanicClient implements ClientModInitializer {
                 new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYBOARD,
                         92, category)); // GLFW_KEY_BACKSLASH (keyboard layout dependent)
 
+        // A reliable way into settings that works regardless of the user's keyboard layout.
+        ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
+            if (screen instanceof PauseScreen) {
+                Screens.getButtons(screen).add(Button.builder(
+                    Component.literal("Lag Panic..."),
+                    button -> openSettings(client)
+                ).bounds(width - 112, 6, 106, 20).build());
+            }
+        });
+
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("lagpanic", "debug"),
                 (graphics, tracker) -> {
@@ -60,9 +75,14 @@ public final class LagPanicClient implements ClientModInitializer {
                 recoveryAllowed = GraphicsSnapshot.restorePending(client);
             }
             while (panic.consumeClick()) toggle(client);
-            while (settings.consumeClick()) client.gui.setScreen(new SettingsScreen(client.gui.screen()));
+            while (settings.consumeClick()) openSettings(client);
             tick(client);
         });
+    }
+
+    public static void openSettings(Minecraft client) {
+        if (!(client.gui.screen() instanceof SettingsScreen))
+            client.gui.setScreen(new SettingsScreen(client.gui.screen()));
     }
 
     public static void toggle(Minecraft client) {
