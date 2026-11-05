@@ -54,6 +54,8 @@ public final class SettingsScreen extends Screen {
                     () -> c.stableSecondsToRestore = c.stableSecondsToRestore >= 300 ? 20 : c.stableSecondsToRestore + 10);
             option(left, y + row * 5, w, "Simulation dist: " + bool(c.changeSimulationDistance),
                     () -> c.changeSimulationDistance = !c.changeSimulationDistance);
+            option(right, y + row * 5, w, "Hide Primed TNT: " + bool(c.hidePrimedTnt),
+                    () -> c.hidePrimedTnt = !c.hidePrimedTnt);
             addRenderableWidget(Button.builder(Component.literal("< Back"), b -> {
                 performancePage = false;
                 rebuildWidgets();
