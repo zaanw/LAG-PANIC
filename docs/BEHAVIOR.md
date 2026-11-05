@@ -1,16 +1,33 @@
-# Lag Panic behavior
+# Lag Panic — technical behavior and limitations
 
-- **F8** activates/deactivates a temporary emergency graphics profile.
-- **Right Shift** opens the config screen.
-- Profiles: Light (render 12 / entity scale 0.8), Medium (8 / 0.65), Nuclear (4 / 0.5).
-- Profiles only **lower** applicable numeric quality settings, never increase them.
-- Particle and cloud controls are separately opt-in/out.
-- Stores original and applied values in a durable recovery JSON file.
-- Restores only options still matching what Lag Panic applied, to avoid stomping on deliberate manual changes.
-- Startup recovery protects user settings if the game closed unexpectedly.
-- Auto-detection disabled by default. Detects **large pauses between client ticks**, not exact GPU frametimes.
-- Auto-trigger requires multiple spikes over ~15s, cooldown ~20s; auto-restore only after a minimum active period and stable interval.
-- Render distance changes can trigger chunk geometry rebuilds; aggressive toggling can itself cause stutter.
-- No world manipulation, no server plugin, no modification of simulation distance.
-- On a dedicated server, local render-distance controls may be capped by server constraints.
-- Not verified in an actual Minecraft game session yet.
+This is a **client-only graphics profile manager**, NOT a renderer optimization. It does not promise higher FPS or shorter frametimes.
+
+## Activation
+- Manual F8. Settings menu Right Shift. Both are remappable through Minecraft controls.
+- Original values and target caps are captured; durable atomic recovery backup written first.
+- If recovery backup cannot be written, activation aborts with no settings changed.
+- One option applied per configured stage interval: particles, clouds, entity distance, render distance.
+- Existing lower graphics quality is never increased. Manual settings changes are not overwritten if the current value differs from the captured original.
+- On deactivation, only values still equal to the targets set by Lag Panic are restored.
+- When leaving a world the client deactivates and restores values.
+- If the game closes unexpectedly, recovery is attempted on next startup; a broken recovery file blocks activation.
+
+## Automatic mode
+- OFF by default; repeated **client tick gaps** above configured threshold within a 15-second window.
+- Applies 60 second cooldown by default between automatic transitions.
+- Restores only automatically activated mode after minimum 30s active and quiet window (default 45s).
+- Menus pause sampling; it does not sample exact GPU frame durations.
+- Per-setting staged application reduces simultaneous changes but **cannot guarantee that no stutter occurs**.
+
+## Config
+`config/lagpanic.json` — all preferences saved as JSON.
+`config/lagpanic-recovery.json` — crash recovery record, should not be manually edited or deleted while Panic is active.
+
+## Status
+- Compiles under Minecraft 26.3 and runs unit tests only when CI is green.
+- No in-game runtime testing or external performance measurements have been performed.
+- Sodium and shader pack compatibility are **not proven**; both may change how graphics options behave.
+- GitHub Release is gated behind manual verification and is not published by CI pushes.
+
+## Security and privacy
+No telemetry, accounts, network calls, world data modifications, or server-side dependency.
