@@ -12,6 +12,22 @@ This is a **client-only graphics profile manager**, NOT a renderer optimization.
 - When leaving a world the client deactivates and restores values.
 - If the game closes unexpectedly, recovery is attempted on next startup; a broken recovery file blocks activation.
 
+## Adaptive frame-pacing mode
+
+When Auto is enabled, Lag Panic optionally samples the time between in-world
+HUD render callbacks using a preallocated 120-frame ring buffer. It treats
+sustained low frame rate (at least 80% slow frames and a low aggregate FPS)
+as an additional reason to activate a lower graphics profile. It requires
+a complete 120-frame window and discards pauses >1 second, preventing a
+single huge freeze or alt-tab from biasing the average.
+
+The main tick only checks the 120 samples while Auto is enabled. No allocation
+or Java reflection is required by frame sampling. Heap occupancy snapshots
+are cached and refreshed at most once per 20 client ticks.
+
+**Not a GPU profiler**: HUD callback intervals include CPU work, synchronization,
+vsync and scheduling. This does not automatically identify the source of a lag.
+
 ## Automatic mode
 - OFF by default; repeated **client tick gaps** above configured threshold within a 15-second window.
 - Applies 60 second cooldown by default between automatic transitions.
