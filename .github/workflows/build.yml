@@ -20,4 +20,4 @@ jobs:
         if: success()
         with:
           name: lagpanic-jar
-          path: build/libs/lagpanic-0.1.0.jar
+          path: build/libs/lagpanic-*.jar
