@@ -11,6 +11,9 @@ import net.fabricmc.loader.api.FabricLoader;
 public final class Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public boolean auto = false;
+    // Only evaluates frames when Auto is enabled; no render settings are changed at high FPS.
+    public boolean autoWhenSlowFps = true;
+    public int lowFpsThreshold = 35;
     public boolean restoreAutomatically = true;
     public boolean changeRenderDistance = true;
     public boolean changeParticles = true;
@@ -36,6 +39,7 @@ public final class Config {
         autoCooldownSeconds = Math.max(30, Math.min(600, autoCooldownSeconds));
         stageIntervalTicks = Math.max(1, Math.min(40, stageIntervalTicks));
         gcThresholdPercent = MemoryPressure.clampThreshold(gcThresholdPercent);
+        lowFpsThreshold = Math.max(15, Math.min(60, lowFpsThreshold));
     }
     static Path path() {
         return FabricLoader.getInstance().getConfigDir().resolve("lagpanic.json");
