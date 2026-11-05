@@ -56,10 +56,12 @@ public final class SettingsScreen extends Screen {
                     () -> c.changeSimulationDistance = !c.changeSimulationDistance);
             option(right, y + row * 5, w, "Hide Primed TNT: " + bool(c.hidePrimedTnt),
                     () -> c.hidePrimedTnt = !c.hidePrimedTnt);
+            option(left, y + row * 6, w, "Hide Explosions: " + bool(c.hideExplosionParticles),
+                    () -> c.hideExplosionParticles = !c.hideExplosionParticles);
             addRenderableWidget(Button.builder(Component.literal("< Back"), b -> {
                 performancePage = false;
                 rebuildWidgets();
-            }).bounds(width / 2 - 70, y + row * 6, 140, 20).build());
+            }).bounds(width / 2 - 70, y + row * 7, 140, 20).build());
             return;
         }
 
