@@ -5,11 +5,10 @@ import dev.zaan.lagpanic.ui.SettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
+
 
 public final class LagPanicClient implements ClientModInitializer {
     public static Config config;
@@ -51,8 +50,7 @@ public final class LagPanicClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         config = Config.load();
-        KeyMapping.Category category = KeyMapping.Category.register(
-                Identifier.fromNamespaceAndPath("lagpanic", "general"));
+        String category = "key.categories.lagpanic";
         KeyMapping panic = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.lagpanic.toggle", InputConstants.Type.KEYBOARD,
                         InputConstants.KEY_F8, category));
@@ -64,20 +62,19 @@ public final class LagPanicClient implements ClientModInitializer {
                 new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYBOARD,
                         InputConstants.KEY_F9, category));
 
-        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
-                Identifier.fromNamespaceAndPath("lagpanic", "debug"),
+        HudRenderCallback.EVENT.register(
                 (graphics, tracker) -> {
 
                     Minecraft client = Minecraft.getInstance();
                     if (config.auto && config.autoWhenSlowFps
                             && client.level != null && client.player != null
-                            && client.gui.screen() == null) {
+                            && client.screen == null) {
                         FRAMES.sample(System.nanoTime());
                     }
                     if (!config.debugOverlay) return;
                     if (client.player == null || client.level == null) return;
                     graphics.fill(5, 5, 252, 53, 0xC81A1C23);
-                    graphics.text(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
+                    graphics.drawString(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
                     graphics.text(client.font, "JVM heap: " + heap().usedMiB() + "/" + heap().maxMiB()
                         + " MiB | FPS~" + estimatedFps() + " | gap " + latestTickPauseMs() + "ms", 11, 23, 0xFF93B0CC);
                     graphics.text(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
@@ -99,7 +96,7 @@ public final class LagPanicClient implements ClientModInitializer {
 
     public static void openSettings(Minecraft client) {
         if (!(client.gui.screen() instanceof SettingsScreen))
-            client.gui.setScreen(new SettingsScreen(client.gui.screen()));
+            client.setScreen(new SettingsScreen(client.gui.screen()));
     }
 
     public static void toggle(Minecraft client) {
