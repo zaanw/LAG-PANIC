@@ -11,6 +11,7 @@ import net.minecraft.network.chat.Component;
 /** Compact two-column dark settings screen; all toggles persist immediately. */
 public final class SettingsScreen extends Screen {
     private final Screen parent;
+    private boolean performancePage;
     private final Config c = LagPanicClient.config;
 
     public SettingsScreen(Screen parent) {
@@ -33,6 +34,30 @@ public final class SettingsScreen extends Screen {
         int right = width / 2 + 4;
         int y = Math.max(22, height / 2 - 133);
         int row = 24;
+
+        if (performancePage) {
+            option(left, y + row, w, "Auto Panic: " + bool(c.auto),
+                    () -> c.auto = !c.auto);
+            option(right, y + row, w, "Low-FPS trigger: " + bool(c.autoWhenSlowFps),
+                    () -> c.autoWhenSlowFps = !c.autoWhenSlowFps);
+            option(left, y + row * 2, w, "FPS threshold: " + c.lowFpsThreshold,
+                    () -> c.lowFpsThreshold = c.lowFpsThreshold >= 60 ? 15 : c.lowFpsThreshold + 5);
+            option(right, y + row * 2, w, "Cooldown: " + c.autoCooldownSeconds + "s",
+                    () -> c.autoCooldownSeconds = c.autoCooldownSeconds >= 600 ? 30 : c.autoCooldownSeconds + 30);
+            option(left, y + row * 3, w, "Memory HUD: " + bool(c.debugOverlay),
+                    () -> c.debugOverlay = !c.debugOverlay);
+            option(right, y + row * 3, w, "GC experiment: " + bool(c.allowExperimentalGc),
+                    () -> c.allowExperimentalGc = !c.allowExperimentalGc);
+            option(left, y + row * 4, w, "GC threshold: " + c.gcThresholdPercent + "%",
+                    () -> c.gcThresholdPercent = c.gcThresholdPercent >= 95 ? 70 : c.gcThresholdPercent + 5);
+            option(right, y + row * 4, w, "Stable: " + c.stableSecondsToRestore + "s",
+                    () -> c.stableSecondsToRestore = c.stableSecondsToRestore >= 300 ? 20 : c.stableSecondsToRestore + 10);
+            addRenderableWidget(Button.builder(Component.literal("< Back"), b -> {
+                performancePage = false;
+                rebuildWidgets();
+            }).bounds(width / 2 - 70, y + row * 6, 140, 20).build());
+            return;
+        }
 
         option(left, y, w, "Panic: " + (LagPanicClient.isActive() ? "ACTIVE" : "STANDBY"),
                 () -> LagPanicClient.toggle(minecraft));
@@ -79,19 +104,25 @@ public final class SettingsScreen extends Screen {
         option(right, y + row * 7, w, "GC threshold: " + c.gcThresholdPercent + "%",
                 () -> c.gcThresholdPercent = c.gcThresholdPercent >= 95 ? 70 : c.gcThresholdPercent + 5);
 
+        addRenderableWidget(Button.builder(Component.literal("Performance >"), b -> {
+                performancePage = true;
+                rebuildWidgets();
+            }).bounds(left, y + row * 8 + 2, w, 20).build());
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
-                .bounds(width / 2 - 70, y + row * 8 + 2, 140, 20).build());
+                .bounds(right, y + row * 8 + 2, w, 20).build());
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mx, int my, float partialTick) {
         super.extractRenderState(graphics, mx, my, partialTick);
-        graphics.centeredText(font, Component.literal("LAG PANIC  /  MIDNIGHT"),
+        graphics.centeredText(font, Component.literal(performancePage ? "LAG PANIC  /  PERFORMANCE" : "LAG PANIC  /  MIDNIGHT"),
                 width / 2, Math.max(7, height / 2 - 157), 0xFF77D3EF);
         MemoryPressure.Heap heap = LagPanicClient.heap();
         graphics.centeredText(font, Component.literal(
                 "JVM heap: " + heap.usedMiB() + " / " + heap.maxMiB() + " MiB (" + heap.percent() + "%)"),
                 width / 2, Math.min(height - 30, Math.max(18, height / 2 + 101)), 0xFF77D3EF);
-        graphics.centeredText(font, Component.literal("GC may freeze the game | F8 Panic | F9 Settings"),
+        graphics.centeredText(font, Component.literal(performancePage
+                    ? "Auto reacts to sustained low FPS | GC may cause stutter"
+                    : "F8 Panic | F9 Settings | Performance >"),
                 width / 2, Math.min(height - 12, Math.max(28, height / 2 + 114)), 0xFF8795A8);
     }
 
