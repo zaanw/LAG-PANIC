@@ -22,7 +22,7 @@ public final class FreezeDiagnostics {
         return sum;
     }
 
-    public void sample(int latestTickGapMs, MemoryPressure.Heap heap) {
+    public void sample(int latestTickGapMs, int heapPercent) {
         long gcTime = gcMillis();
         long gcDelta = previousGcMillis < 0 ? 0 : Math.max(0, gcTime - previousGcMillis);
         previousGcMillis = gcTime;
@@ -30,7 +30,7 @@ public final class FreezeDiagnostics {
         pauseCount++;
         lastPauseMillis = latestTickGapMs;
         lastGcDeltaMillis = gcDelta;
-        lastHeapPercent = heap.percent();
+        lastHeapPercent = Math.max(0, Math.min(100, heapPercent));
     }
 
     public long count() { return pauseCount; }
