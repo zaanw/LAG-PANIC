@@ -1,6 +1,6 @@
 # Lag Panic ⚡
 
-Current development version: **0.2.0-beta.3**. This is not a tested stable release.
+Current development version: **0.3.0-beta.1**. This is not a tested stable release.
 
 Experimental Minecraft **26.3** client-side Fabric mod, maintained by **zaan**.
 
@@ -20,6 +20,24 @@ Profiles:
 All controls are optional. Changes are spread across multiple client ticks and render distance is changed last. The latest settings are saved in `config/lagpanic.json`.
 
 A durable `config/lagpanic-recovery.json` backup is created **before** touching any graphics settings. Unexpected shutdown recovery runs at next game startup. If recovery fails, Lag Panic disables activation rather than risking another loss of settings.
+
+## Adaptive performance (0.3.0 beta)
+
+The optional Auto Panic can now react to **sustained low FPS**, not only sudden
+client tick stalls. It records at most 120 intervals between in-world HUD
+render callbacks in a preallocated array and checks whether 80% or more of
+recent frames were slower than the configurable threshold (35 FPS by default).
+This captures sustained poor frame pacing without taking stack traces, scanning
+mods, allocating objects per frame or changing graphics at normal ~100 FPS.
+
+**Auto Panic remains OFF by default.** Enable it from the Performance page,
+then choose whether to trigger on sustained low FPS. A cooldown and a quiet
+recovery window reduce oscillations, and graphics changes remain staged. If
+render distance changes cause more stutter, disable that option.
+
+This is a dynamic reduction in rendering workload; it does not free all Java
+heap memory, improve server TPS or fix memory leaks in other mods. No FPS
+improvement has been benchmarked.
 
 ## Automatic panic
 
