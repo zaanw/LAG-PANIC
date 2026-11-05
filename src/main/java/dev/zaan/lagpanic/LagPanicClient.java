@@ -14,6 +14,7 @@ import net.minecraft.resources.Identifier;
 public final class LagPanicClient implements ClientModInitializer {
     public static Config config;
     private static final SpikeDetector DETECTOR = new SpikeDetector();
+    private static final FrameMonitor FRAMES = new FrameMonitor();
     private static final MemoryPressure MEMORY = new MemoryPressure();
     private static GraphicsSnapshot snapshot;
     private static boolean active;
@@ -22,12 +23,19 @@ public final class LagPanicClient implements ClientModInitializer {
     private static boolean autoActivated;
     private static long activatedAt;
     private static long lastAutomaticChange;
+    private static long lastLowFpsNanos;
+    private static int sampleTickCounter;
+    private static MemoryPressure.Heap cachedHeap;
     private static int stage = 0;
     private static int stageWait = 0;
 
     public static boolean isActive() { return active; }
     public static int latestTickPauseMs() { return DETECTOR.lastGapMs(); }
-    public static MemoryPressure.Heap heap() { return MemoryPressure.sample(); }
+    public static MemoryPressure.Heap heap() {
+        if (cachedHeap == null) cachedHeap = MemoryPressure.sample();
+        return cachedHeap;
+    }
+    public static int estimatedFps() { return FRAMES.estimatedFps(); }
     public static String status() {
         if (!recoveryAllowed && attemptedRecovery) return "RECOVERY ERROR: check logs";
         return active ? "PANIC: " + config.profile : "STANDBY";
@@ -52,13 +60,19 @@ public final class LagPanicClient implements ClientModInitializer {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("lagpanic", "debug"),
                 (graphics, tracker) -> {
-                    if (!config.debugOverlay) return;
+                    // One nanoTime and one array write per rendered frame, ONLY in Auto mode.
                     Minecraft client = Minecraft.getInstance();
+                    if (config.auto && config.autoWhenSlowFps
+                            && client.level != null && client.player != null
+                            && client.gui.screen() == null) {
+                        FRAMES.sample(System.nanoTime());
+                    }
+                    if (!config.debugOverlay) return;
                     if (client.player == null || client.level == null) return;
                     graphics.fill(5, 5, 226, 39, 0xC81A1C23);
                     graphics.text(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
                     graphics.text(client.font, "JVM heap: " + heap().usedMiB() + " / " + heap().maxMiB()
-                        + " MiB | " + latestTickPauseMs() + "ms tick gap", 11, 23, 0xFF93B0CC);
+                        + " MiB | FPS~" + estimatedFps() + " | gap " + latestTickPauseMs() + "ms", 11, 23, 0xFF93B0CC);
                 });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -122,6 +136,8 @@ public final class LagPanicClient implements ClientModInitializer {
         if (client.level == null || client.player == null) {
             if (active) deactivate(client);
             DETECTOR.reset();
+            FRAMES.reset();
+            lastLowFpsNanos = 0L;
             return;
         }
         // One graphics change each N ticks. Changing render distance can cause
@@ -131,13 +147,25 @@ public final class LagPanicClient implements ClientModInitializer {
             stageWait = config.stageIntervalTicks;
         }
 
+        // Refresh the heap monitor at most once per second, not on each frame.
+        if (++sampleTickCounter >= 20) {
+            sampleTickCounter = 0;
+            cachedHeap = MemoryPressure.sample();
+        }
         long now = System.nanoTime();
         if (client.gui.screen() != null) {
             DETECTOR.reset();
+            FRAMES.reset();
             return;
         }
-        boolean trigger = DETECTOR.recordTick(now, config.spikeThresholdMs, config.spikesToTrigger);
-        if (!config.auto) return;
+        boolean spikeTrigger = DETECTOR.recordTick(now, config.spikeThresholdMs, config.spikesToTrigger);
+        if (!config.auto) {
+            FRAMES.reset();
+            return;
+        }
+        boolean lowFps = config.autoWhenSlowFps && FRAMES.sustainedLowFps(config.lowFpsThreshold);
+        if (lowFps) lastLowFpsNanos = now;
+        boolean trigger = spikeTrigger || lowFps;
 
         long coolDown = config.autoCooldownSeconds * 1_000_000_000L;
         if (!active && trigger && now - lastAutomaticChange >= coolDown) {
@@ -145,7 +173,9 @@ public final class LagPanicClient implements ClientModInitializer {
         } else if (active && autoActivated && config.restoreAutomatically
                 && stage >= 4
                 && now - activatedAt >= 30_000_000_000L
-                && DETECTOR.quietFor(now, config.stableSecondsToRestore)) {
+                && DETECTOR.quietFor(now, config.stableSecondsToRestore)
+                && (lastLowFpsNanos == 0 || now - lastLowFpsNanos
+                    >= config.stableSecondsToRestore * 1_000_000_000L)) {
             deactivate(client);
         }
     }
