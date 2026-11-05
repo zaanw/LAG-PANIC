@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "dev.zaan.lagpanic.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "EntityRenderDispatcherMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
