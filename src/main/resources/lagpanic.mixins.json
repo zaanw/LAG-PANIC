@@ -3,7 +3,8 @@
   "package": "dev.zaan.lagpanic.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "EntityRenderDispatcherMixin"
+    "EntityRenderDispatcherMixin",
+    "ParticleEngineMixin"
   ],
   "injectors": {
     "defaultRequire": 1
