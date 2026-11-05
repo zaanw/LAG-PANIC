@@ -1,10 +1,5 @@
 package dev.zaan.lagpanic;
 
-/**
- * Zero-allocation render callback sampler. Captures time between HUD render
- * callbacks (a proxy for displayed frame rate, not GPU-only rendering time).
- * No file IO, profiler stack walking or per-frame collections.
- */
 public final class FrameMonitor {
     private static final int WINDOW = 120;
     private static final long MAX_GAP_NANOS = 1_000_000_000L;
@@ -29,7 +24,7 @@ public final class FrameMonitor {
         long delta = now - lastFrameNanos;
         lastFrameNanos = now;
         if (delta <= 0 || delta > MAX_GAP_NANOS) {
-            // Alt-tab, screen transitions and long stalls do not bias averages.
+
             reset();
             lastFrameNanos = now;
             return;
@@ -49,8 +44,7 @@ public final class FrameMonitor {
 
     public boolean sustainedLowFps(int fpsThreshold) {
         if (count < WINDOW) return false;
-        // Reject transient stutters: at least 80% of observed frames must be
-        // slower than target frame interval, and aggregate FPS must be low.
+
         long interval = 1_000_000_000L / Math.max(1, fpsThreshold);
         int slow = 0;
         for (int i = 0; i < WINDOW; i++) {
