@@ -3,7 +3,7 @@
 This is a **client-only graphics profile manager**, NOT a renderer optimization. It does not promise higher FPS or shorter frametimes.
 
 ## Activation
-- Manual F8. Settings menu Right Shift. Both are remappable through Minecraft controls.
+- Manual F8. Settings menu backslash (`\\`). Both are remappable through Minecraft controls.
 - Original values and target caps are captured; durable atomic recovery backup written first.
 - If recovery backup cannot be written, activation aborts with no settings changed.
 - One option applied per configured stage interval: particles, clouds, entity distance, render distance.
