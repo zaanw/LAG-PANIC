@@ -15,7 +15,7 @@ public abstract class EntityRenderDispatcherMixin {
     @Inject(method = "shouldRender", at = @At("HEAD"), cancellable = true)
     private void lagpanic$skipPrimedTnt(Entity entity, Frustum frustum,
                                         double cameraX, double cameraY, double cameraZ,
-                                        float partialTick, CallbackInfoReturnable<Boolean> cir) {
+                                        CallbackInfoReturnable<Boolean> cir) {
         if (entity instanceof PrimedTnt && LagPanicClient.shouldHidePrimedTnt()) {
             cir.setReturnValue(false);
         }
