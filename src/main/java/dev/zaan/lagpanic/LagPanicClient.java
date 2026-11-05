@@ -14,6 +14,7 @@ import net.minecraft.resources.Identifier;
 public final class LagPanicClient implements ClientModInitializer {
     public static Config config;
     private static final SpikeDetector DETECTOR = new SpikeDetector();
+    private static final MemoryPressure MEMORY = new MemoryPressure();
     private static GraphicsSnapshot snapshot;
     private static boolean active;
     private static boolean recoveryAllowed;
@@ -26,6 +27,7 @@ public final class LagPanicClient implements ClientModInitializer {
 
     public static boolean isActive() { return active; }
     public static int latestTickPauseMs() { return DETECTOR.lastGapMs(); }
+    public static MemoryPressure.Heap heap() { return MemoryPressure.sample(); }
     public static String status() {
         if (!recoveryAllowed && attemptedRecovery) return "RECOVERY ERROR: check logs";
         return active ? "PANIC: " + config.profile : "STANDBY";
@@ -55,8 +57,8 @@ public final class LagPanicClient implements ClientModInitializer {
                     if (client.player == null || client.level == null) return;
                     graphics.fill(5, 5, 226, 39, 0xC81A1C23);
                     graphics.text(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
-                    graphics.text(client.font, "Tick gap: " + latestTickPauseMs()
-                        + "ms (not FPS) | F8: toggle", 11, 23, 0xFF93B0CC);
+                    graphics.text(client.font, "JVM heap: " + heap().usedMiB() + " / " + heap().maxMiB()
+                        + " MiB | " + latestTickPauseMs() + "ms tick gap", 11, 23, 0xFF93B0CC);
                 });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -96,6 +98,8 @@ public final class LagPanicClient implements ClientModInitializer {
         stageWait = 0;
         activatedAt = System.nanoTime();
         lastAutomaticChange = activatedAt;
+        // Explicitly opt-in only; System.gc() can cause more freezes than it fixes.
+        MEMORY.tryRequest(config, automatically, activatedAt);
     }
 
     public static void deactivate(Minecraft client) {
