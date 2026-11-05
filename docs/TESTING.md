@@ -19,6 +19,15 @@ Use a disposable Minecraft 26.3 Fabric profile in Prism Launcher, ideally in a c
 - Try a dedicated server without installing Lag Panic on the server.
 - Test with Sodium installed and not installed; record compatibility honestly.
 
+## Adaptive frame pacing tests
+
+- With Auto ON and threshold 35 FPS, verify stable ~100 FPS does not activate.
+- Verify sustained 20-25 FPS for several seconds triggers Panic after cooldown.
+- Test VSync and low cap: low capped FPS can trigger; disable the feature if undesired.
+- Verify a single freeze or alt-tab does not trigger based solely on frame samples.
+- Verify manual F8 works independently of FPS monitor.
+- Compare 1% lows, p95/p99 frame time and actual memory use with feature ON/OFF.
+
 ## Auto behavior
 
 Auto OFF must never trigger without pressing F8. With Auto ON, repeated tick stalls above threshold may trigger Panic; isolated pauses must not. Auto-activated panic must restore only after prolonged stability, and must not oscillate.
