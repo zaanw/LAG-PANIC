@@ -38,6 +38,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.version }}
         run: |
-          gh release create "$TAG" build/libs/lagpanic-0.1.0.jar \
+          MOD_VERSION="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          if [ "$TAG" != "v$MOD_VERSION" ]; then
+            echo "Requested tag $TAG does not match built version v$MOD_VERSION"
+            exit 1
+          fi
+          gh release create "$TAG" "build/libs/lagpanic-$MOD_VERSION.jar" \
             --target "$GITHUB_SHA" --title "Lag Panic $TAG" \
             --notes "Verified manual release of Lag Panic. See README for limitations."
