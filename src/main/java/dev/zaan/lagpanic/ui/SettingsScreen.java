@@ -8,7 +8,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Compact two-column dark settings screen; all toggles persist immediately. */
 public final class SettingsScreen extends Screen {
     private final Screen parent;
     private boolean performancePage;
