@@ -58,17 +58,16 @@ public final class LagPanicClient implements ClientModInitializer {
                         InputConstants.KEY_F8, category));
         KeyMapping settings = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYBOARD,
-                        92, category)); // GLFW_KEY_BACKSLASH (keyboard layout dependent)
-        // Physical F9 fallback on layouts where backslash cannot be typed directly.
+                        92, category));
+
         KeyMapping settingsFallback = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYBOARD,
                         InputConstants.KEY_F9, category));
 
-
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("lagpanic", "debug"),
                 (graphics, tracker) -> {
-                    // One nanoTime and one array write per rendered frame, ONLY in Auto mode.
+
                     Minecraft client = Minecraft.getInstance();
                     if (config.auto && config.autoWhenSlowFps
                             && client.level != null && client.player != null
@@ -115,7 +114,7 @@ public final class LagPanicClient implements ClientModInitializer {
             if (!recoveryAllowed) return;
         }
         GraphicsSnapshot candidate = GraphicsSnapshot.prepare(client.options, config);
-        if (!candidate.persist()) return; // No option changes without durable rollback record.
+        if (!candidate.persist()) return;
         snapshot = candidate;
         active = true;
         autoActivated = automatically;
@@ -123,7 +122,7 @@ public final class LagPanicClient implements ClientModInitializer {
         stageWait = 0;
         activatedAt = System.nanoTime();
         lastAutomaticChange = activatedAt;
-        // Explicitly opt-in only; System.gc() can cause more freezes than it fixes.
+
         MEMORY.tryRequest(config, automatically, activatedAt);
     }
 
@@ -151,8 +150,7 @@ public final class LagPanicClient implements ClientModInitializer {
             lastLowFpsNanos = 0L;
             return;
         }
-        // One graphics change each N ticks. Changing render distance can cause
-        // a chunk rebuild: it is deliberately applied last.
+
         if (active && snapshot != null && stage < 5 && --stageWait <= 0) {
             snapshot.applyStep(client.options, stage++);
             stageWait = config.stageIntervalTicks;
@@ -165,7 +163,7 @@ public final class LagPanicClient implements ClientModInitializer {
             return;
         }
         boolean spikeTrigger = DETECTOR.recordTick(now, config.spikeThresholdMs, config.spikesToTrigger);
-        // Poll GC MXBeans only on significant pauses and periodically, never per rendered frame.
+
         boolean longPause = DETECTOR.lastGapMs() >= 750;
         if (++sampleTickCounter >= 20 || longPause) {
             sampleTickCounter = 0;
