@@ -15,6 +15,7 @@ public final class LagPanicClient implements ClientModInitializer {
     public static Config config;
     private static final SpikeDetector DETECTOR = new SpikeDetector();
     private static final FrameMonitor FRAMES = new FrameMonitor();
+    private static final FreezeDiagnostics FREEZES = new FreezeDiagnostics();
     private static final MemoryPressure MEMORY = new MemoryPressure();
     private static GraphicsSnapshot snapshot;
     private static boolean active;
@@ -36,6 +37,7 @@ public final class LagPanicClient implements ClientModInitializer {
         return cachedHeap;
     }
     public static int estimatedFps() { return FRAMES.estimatedFps(); }
+    public static FreezeDiagnostics diagnostics() { return FREEZES; }
     public static String status() {
         if (!recoveryAllowed && attemptedRecovery) return "RECOVERY ERROR: check logs";
         return active ? "PANIC: " + config.profile : "STANDBY";
@@ -69,10 +71,13 @@ public final class LagPanicClient implements ClientModInitializer {
                     }
                     if (!config.debugOverlay) return;
                     if (client.player == null || client.level == null) return;
-                    graphics.fill(5, 5, 226, 39, 0xC81A1C23);
+                    graphics.fill(5, 5, 252, 53, 0xC81A1C23);
                     graphics.text(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
-                    graphics.text(client.font, "JVM heap: " + heap().usedMiB() + " / " + heap().maxMiB()
+                    graphics.text(client.font, "JVM heap: " + heap().usedMiB() + "/" + heap().maxMiB()
                         + " MiB | FPS~" + estimatedFps() + " | gap " + latestTickPauseMs() + "ms", 11, 23, 0xFF93B0CC);
+                    graphics.text(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
+                        + FREEZES.lastPauseMillis() + "ms | GC observed: "
+                        + FREEZES.lastGcDeltaMillis() + "ms", 11, 35, 0xFF93B0CC);
                 });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -142,16 +147,11 @@ public final class LagPanicClient implements ClientModInitializer {
         }
         // One graphics change each N ticks. Changing render distance can cause
         // a chunk rebuild: it is deliberately applied last.
-        if (active && snapshot != null && stage < 4 && --stageWait <= 0) {
+        if (active && snapshot != null && stage < 5 && --stageWait <= 0) {
             snapshot.applyStep(client.options, stage++);
             stageWait = config.stageIntervalTicks;
         }
 
-        // Refresh the heap monitor at most once per second, not on each frame.
-        if (++sampleTickCounter >= 20) {
-            sampleTickCounter = 0;
-            cachedHeap = MemoryPressure.sample();
-        }
         long now = System.nanoTime();
         if (client.gui.screen() != null) {
             DETECTOR.reset();
@@ -159,6 +159,13 @@ public final class LagPanicClient implements ClientModInitializer {
             return;
         }
         boolean spikeTrigger = DETECTOR.recordTick(now, config.spikeThresholdMs, config.spikesToTrigger);
+        // Poll GC MXBeans only on significant pauses and periodically, never per rendered frame.
+        boolean longPause = DETECTOR.lastGapMs() >= 750;
+        if (++sampleTickCounter >= 20 || longPause) {
+            sampleTickCounter = 0;
+            cachedHeap = MemoryPressure.sample();
+            FREEZES.sample(DETECTOR.lastGapMs(), cachedHeap);
+        }
         if (!config.auto) {
             FRAMES.reset();
             return;
@@ -171,7 +178,7 @@ public final class LagPanicClient implements ClientModInitializer {
         if (!active && trigger && now - lastAutomaticChange >= coolDown) {
             activate(client, true);
         } else if (active && autoActivated && config.restoreAutomatically
-                && stage >= 4
+                && stage >= 5
                 && now - activatedAt >= 30_000_000_000L
                 && DETECTOR.quietFor(now, config.stableSecondsToRestore)
                 && (lastLowFpsNanos == 0 || now - lastLowFpsNanos
