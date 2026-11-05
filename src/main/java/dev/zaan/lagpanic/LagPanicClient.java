@@ -5,11 +5,6 @@ import dev.zaan.lagpanic.ui.SettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.Screens;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.screens.PauseScreen;
-import net.minecraft.network.chat.Component;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.minecraft.client.KeyMapping;
@@ -46,16 +41,11 @@ public final class LagPanicClient implements ClientModInitializer {
         KeyMapping settings = KeyMappingHelper.registerKeyMapping(
                 new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYBOARD,
                         92, category)); // GLFW_KEY_BACKSLASH (keyboard layout dependent)
+        // Physical F9 fallback on layouts where backslash cannot be typed directly.
+        KeyMapping settingsFallback = KeyMappingHelper.registerKeyMapping(
+                new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYBOARD,
+                        InputConstants.KEY_F9, category));
 
-        // A reliable way into settings that works regardless of the user's keyboard layout.
-        ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
-            if (screen instanceof PauseScreen) {
-                Screens.getButtons(screen).add(Button.builder(
-                    Component.literal("Lag Panic..."),
-                    button -> openSettings(client)
-                ).bounds(width - 112, 6, 106, 20).build());
-            }
-        });
 
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("lagpanic", "debug"),
@@ -76,6 +66,7 @@ public final class LagPanicClient implements ClientModInitializer {
             }
             while (panic.consumeClick()) toggle(client);
             while (settings.consumeClick()) openSettings(client);
+            while (settingsFallback.consumeClick()) openSettings(client);
             tick(client);
         });
     }
