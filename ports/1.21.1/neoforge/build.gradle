@@ -1,0 +1,15 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+version = project.mod_version
+group = 'dev.zaan'
+base { archivesName = 'lagpanic-neoforge-1.21.1' }
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+neoForge {
+    version = project.neo_version
+    runs { client { client() } }
+    mods { lagpanic { sourceSet(sourceSets.main) } }
+}
+sourceSets.main.java.srcDirs += ['../common/src/main/java', '../mc-common/src/main/java']
+tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
