@@ -14,10 +14,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.server.level.ParticleStatus;
 
-/**
- * Captures exactly the settings we might change. The recovery file containing
- * intended targets MUST be committed BEFORE the first graphics modification.
- */
 public final class GraphicsSnapshot {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public int originalRender;
@@ -46,8 +42,7 @@ public final class GraphicsSnapshot {
         Preset p = Preset.forName(c.profile);
         s.appliedRender = c.changeRenderDistance
                 ? Math.min(s.originalRender, p.renderDistance()) : s.originalRender;
-        // Simulation distance controls ticking load primarily in singleplayer / integrated server.
-        // Not a client-side server TPS cheat on multiplayer servers.
+
         int simulationCap = switch (c.profile) {
             case "Light" -> 7;
             case "Nuclear" -> 4;
@@ -58,7 +53,6 @@ public final class GraphicsSnapshot {
         s.appliedEntities = c.changeEntityDistance
                 ? Math.min(s.originalEntities, p.entityDistance()) : s.originalEntities;
 
-        // Never upgrade MINIMAL to DECREASED or clouds OFF to FAST.
         ParticleStatus particles = o.particles().get();
         ParticleStatus particleTarget = "Light".equals(c.profile)
                 ? ParticleStatus.DECREASED : ParticleStatus.MINIMAL;
@@ -73,11 +67,6 @@ public final class GraphicsSnapshot {
         return s;
     }
 
-    /**
-     * One option per invocation, spread over multiple ticks to avoid applying
-     * all costly changes simultaneously. A manual change made before this step
-     * is respected.
-     */
     public void applyStep(Options o, int step) {
         switch (step) {
             case 0 -> {
@@ -108,11 +97,6 @@ public final class GraphicsSnapshot {
         }
     }
 
-    /**
-     * Restore only values that still equal the ones Lag Panic applied.
-     * Unchanged options are NEVER restored (otherwise we'd overwrite the
-     * player's own changes while Panic was active).
-     */
     public void recover(Options o) {
         if (originalSimulation != appliedSimulation && originalSimulation >= 2
                 && o.simulationDistance().get() == appliedSimulation)
@@ -130,7 +114,6 @@ public final class GraphicsSnapshot {
             o.cloudStatus().set(CloudStatus.valueOf(originalClouds));
     }
 
-    /** Fail closed: if persistence fails, DO NOT change any graphics option. */
     public boolean persist() {
         Path p = backupPath();
         Path tmp = p.resolveSibling(p.getFileName() + ".tmp");
