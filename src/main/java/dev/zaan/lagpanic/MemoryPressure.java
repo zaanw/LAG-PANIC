@@ -1,12 +1,8 @@
 package dev.zaan.lagpanic;
 
-/**
- * Small, allocation-free JVM heap monitor. Does not pretend to measure the
- * whole process's resident memory, OS RAM, VRAM, or other mods' native memory.
- */
 public final class MemoryPressure {
     private static final long MIB = 1024L * 1024L;
-    private static final long MIN_GC_INTERVAL_NANOS = 300_000_000_000L; // five minutes
+    private static final long MIN_GC_INTERVAL_NANOS = 300_000_000_000L;
     private long lastRequestNanos = Long.MIN_VALUE;
     private boolean requested;
 
@@ -21,7 +17,6 @@ public final class MemoryPressure {
         return new Heap(used / MIB, committed / MIB, max / MIB, percent);
     }
 
-    /** Request at most one GC on manual activation and only under real heap pressure. */
     public boolean tryRequest(Config config, boolean automatically, long now) {
         if (!config.allowExperimentalGc || automatically) return false;
         if (sample().percent() < config.gcThresholdPercent) return false;
@@ -29,7 +24,7 @@ public final class MemoryPressure {
         requested = true;
         lastRequestNanos = now;
         try {
-            // May be ignored by the JVM, or cause a pause. Never run on client tick.
+
             Thread worker = new Thread(System::gc, "LagPanic-Optional-GC");
             worker.setDaemon(true);
             worker.start();
