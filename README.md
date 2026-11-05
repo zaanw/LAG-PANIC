@@ -1,5 +1,7 @@
 # Lag Panic ⚡
 
+Current development version: **0.2.0-beta.1**. This is not a tested stable release.
+
 Experimental Minecraft **26.3** client-side Fabric mod, maintained by **zaan**.
 
 **Status: pending Minecraft runtime testing.** A green GitHub Actions build only verifies compilation/unit tests. No FPS increase or improved frame-time has been measured.
