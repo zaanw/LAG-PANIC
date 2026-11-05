@@ -1,6 +1,6 @@
 # Lag Panic ⚡
 
-Current development version: **0.3.0-beta.1**. This is not a tested stable release.
+Current development version: **0.3.0-beta.2**. This is not a tested stable release.
 
 Experimental Minecraft **26.3** client-side Fabric mod, maintained by **zaan**.
 
@@ -20,6 +20,22 @@ Profiles:
 All controls are optional. Changes are spread across multiple client ticks and render distance is changed last. The latest settings are saved in `config/lagpanic.json`.
 
 A durable `config/lagpanic-recovery.json` backup is created **before** touching any graphics settings. Unexpected shutdown recovery runs at next game startup. If recovery fails, Lag Panic disables activation rather than risking another loss of settings.
+
+## Long-freeze diagnostics and simulation distance (beta.2)
+
+A low-overhead stall monitor now records client tick gaps of at least 750ms and
+shows their duration, count, and GC time observed since the last sample. JVM GC
+metrics are sampled only periodically or after a stall, not every frame.
+Coincident GC time **does not prove** GC caused the freeze; mod or chunk loading,
+disk IO, server thread, and native allocations remain possible causes.
+
+**Simulation distance reduction** is a NEW, optional, OFF-by-default feature.
+When enabled, Panic caps the simulation distance to Light=7, Medium=5 or
+Nuclear=4, only if already above that value. It is applied last and the original
+value is saved in the same crash-recovery backup. It can reduce tick workload in
+singleplayer (including modded entities), but cannot optimize a remote
+multiplayer server. It changes simulation behavior while active; not suitable for
+farms relying on distant ticking.
 
 ## Adaptive performance (0.3.0 beta)
 
