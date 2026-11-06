@@ -4,7 +4,7 @@ plugins {
 }
 version = project.mod_version
 group = 'dev.zaan'
-base { archivesName = 'lagpanic-neoforge-1.21.1' }
+base { archivesName = "lagpanic-neoforge-${project.minecraft_version}" }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 neoForge {
     version = project.neo_version
@@ -32,5 +32,6 @@ tasks.withType(JavaCompile).configureEach {
 }
 processResources {
     inputs.property 'version', project.version
-    filesMatching('META-INF/neoforge.mods.toml') { expand(version: project.version) }
+    inputs.property 'minecraft_version', project.minecraft_version
+    filesMatching('META-INF/neoforge.mods.toml') { expand(version: project.version, minecraft_version: project.minecraft_version) }
 }
