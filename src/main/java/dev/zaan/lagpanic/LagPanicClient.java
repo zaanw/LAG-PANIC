@@ -49,7 +49,7 @@ public final class LagPanicClient implements ClientModInitializer {
     public static FreezeDiagnostics diagnostics() { return FREEZES; }
     public static String status() {
         if (!recoveryAllowed && attemptedRecovery) return "RECOVERY ERROR: check logs";
-        return active ? "PANIC: " + config.profile : "STANDBY";
+        return active ? "PANIC: " + config.profile : "OFF";
     }
 
     @Override public void onInitializeClient() {
