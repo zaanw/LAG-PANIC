@@ -1,0 +1,64 @@
+name: Forge 1.21.x version matrix
+on:
+  push:
+    branches: ['feat/forge-matrix']
+    paths:
+      - 'forge/**'
+      - '.github/workflows/forge-1.21.x.yml'
+  pull_request:
+    paths:
+      - 'forge/**'
+      - '.github/workflows/forge-1.21.x.yml'
+permissions:
+  contents: read
+jobs:
+  forge:
+    name: Forge ${{ matrix.minecraft }} / ${{ matrix.forge }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - minecraft: '1.21.1'
+            forge: '52.1.21'
+          - minecraft: '1.21.3'
+            forge: '53.1.16'
+          - minecraft: '1.21.4'
+            forge: '54.1.22'
+          - minecraft: '1.21.5'
+            forge: '55.1.18'
+          - minecraft: '1.21.6'
+            forge: '56.0.9'
+          - minecraft: '1.21.7'
+            forge: '57.0.3'
+          - minecraft: '1.21.8'
+            forge: '58.1.26'
+          - minecraft: '1.21.9'
+            forge: '59.0.5'
+          - minecraft: '1.21.10'
+            forge: '60.1.18'
+          - minecraft: '1.21.11'
+            forge: '61.2.5'
+    defaults:
+      run:
+        working-directory: forge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Compile and run unit tests
+        run: >-
+          gradle clean build --stacktrace --no-daemon
+          -Pminecraft_version=${{ matrix.minecraft }}
+          -Pforge_version=${{ matrix.forge }}
+          -Pmod_version=0.3.0-forge-${{ matrix.minecraft }}-dev
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: lagpanic-forge-${{ matrix.minecraft }}-development
+          path: forge/build/libs/lagpanic-forge-${{ matrix.minecraft }}-*.jar
