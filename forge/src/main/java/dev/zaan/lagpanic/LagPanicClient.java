@@ -5,6 +5,8 @@ import org.lwjgl.glfw.GLFW;
 import dev.zaan.lagpanic.ui.SettingsScreen;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.event.RenderGuiEvent;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 
@@ -57,6 +59,32 @@ public final class LagPanicClient {
     public static void registerKeys(RegisterKeyMappingsEvent event) {
         event.register(PANIC);
         event.register(SETTINGS);
+    }
+
+    // HUD renders at frame cadence, unlike the fixed 20 TPS client tick.
+    // Sampling here allows low-FPS detection to use actual rendered frames.
+    public static void onRenderGui(RenderGuiEvent.Post event) {
+        Minecraft mc = Minecraft.getInstance();
+        if (config == null || mc.level == null || mc.player == null) {
+            FRAMES.reset();
+            return;
+        }
+        if (config.auto && config.autoWhenSlowFps && mc.screen == null) {
+            FRAMES.sample(System.nanoTime());
+        } else {
+            FRAMES.reset();
+        }
+        if (!config.debugOverlay || mc.options.hideGui) return;
+        GuiGraphics graphics = event.getGuiGraphics();
+        graphics.fill(5, 5, 257, 54, 0xC81A1C23);
+        graphics.drawString(mc.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
+        graphics.drawString(mc.font, "Heap: " + heap().usedMiB() + "/"
+                + heap().maxMiB() + " MiB | FPS~" + estimatedFps()
+                + " | tick gap " + latestTickPauseMs() + "ms", 11, 23, 0xFF93B0CC);
+        graphics.drawString(mc.font, "Stalls: " + FREEZES.count()
+                + " | Last: " + FREEZES.lastPauseMillis()
+                + "ms | GC observed: " + FREEZES.lastGcDeltaMillis() + "ms",
+                11, 35, 0xFF93B0CC);
     }
 
     public static void onClientTick(TickEvent.ClientTickEvent event) {
