@@ -8,6 +8,12 @@ base { archivesName = 'lagpanic-neoforge-1.21.1' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(21)
 neoForge {
     version = project.neo_version
+    runs {
+        client {
+            client()
+            gameDirectory = project.file('runs/client')
+        }
+    }
 }
 repositories { mavenCentral() }
 dependencies {
