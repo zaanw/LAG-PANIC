@@ -3,14 +3,18 @@ plugins {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 }
 group = 'dev.zaan'
-version = project.mod_version
-base { archivesName = 'lagpanic-forge' }
-
+def mcVersion = providers.gradleProperty('minecraft_version').get()
+def forgeVersion = providers.gradleProperty('forge_version').get()
+version = providers.gradleProperty('mod_version').getOrElse("0.3.0-forge-${mcVersion}-dev")
+base { archivesName = "lagpanic-forge-${mcVersion}" }
+def mcParts = mcVersion.tokenize('.')
+def nextPatch = mcParts[2].toInteger() + 1
+def minecraftRange = "[${mcVersion},${mcParts[0]}.${mcParts[1]}.${nextPatch})"
+def forgeMajor = forgeVersion.tokenize('.')[0]
 java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
 tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
-
 minecraft {
-    mappings channel: 'official', version: project.minecraft_version
+    mappings channel: 'official', version: mcVersion
     runs {
         client {
             workingDirectory project.file('run')
@@ -18,17 +22,18 @@ minecraft {
         }
     }
 }
-
 repositories { mavenCentral() }
 dependencies {
-    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    minecraft "net.minecraftforge:forge:${mcVersion}-${forgeVersion}"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 test { useJUnitPlatform() }
 processResources {
-    inputs.property 'version', project.version
-    filesMatching('META-INF/mods.toml') { expand version: project.version }
+    inputs.properties([version: project.version, minecraftRange: minecraftRange, forgeMajor: forgeMajor])
+    filesMatching('META-INF/mods.toml') {
+        expand version: project.version, minecraftRange: minecraftRange, forgeMajor: forgeMajor
+    }
 }
 reobf { jar {} }
 jar {
