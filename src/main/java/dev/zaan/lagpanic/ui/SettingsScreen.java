@@ -134,5 +134,5 @@ public final class SettingsScreen extends Screen {
                 width / 2, Math.min(height - 12, Math.max(28, height / 2 + 114)), 0xFF8795A8);
     }
 
-    @Override public void onClose() { minecraft.gui.setScreen(parent); }
+    @Override public void onClose() { LagPanicClient.showScreen(minecraft, parent); }
 }
