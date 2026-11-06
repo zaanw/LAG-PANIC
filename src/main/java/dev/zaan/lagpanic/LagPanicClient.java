@@ -18,6 +18,7 @@ public final class LagPanicClient implements ClientModInitializer {
     private static final FrameMonitor FRAMES = new FrameMonitor();
     private static final FreezeDiagnostics FREEZES = new FreezeDiagnostics();
     private static final MemoryPressure MEMORY = new MemoryPressure();
+    private static final PanicTelemetry TELEMETRY = new PanicTelemetry();
     private static GraphicsSnapshot snapshot;
     private static boolean active;
     private static boolean recoveryAllowed;
@@ -47,6 +48,7 @@ public final class LagPanicClient implements ClientModInitializer {
     }
     public static int estimatedFps() { return FRAMES.estimatedFps(); }
     public static FreezeDiagnostics diagnostics() { return FREEZES; }
+    public static PanicTelemetry telemetry() { return TELEMETRY; }
     public static String status() {
         if (!recoveryAllowed && attemptedRecovery) return "RECOVERY ERROR: check logs";
         return active ? "PANIC: " + config.profile : "OFF";
@@ -71,13 +73,16 @@ public final class LagPanicClient implements ClientModInitializer {
                     }
                     if (!config.debugOverlay) return;
                     if (client.player == null || client.level == null) return;
-                    graphics.fill(5, 5, 252, 53, 0xC81A1C23);
+                    graphics.fill(5, 5, 310, 65, 0xC81A1C23);
                     graphics.drawString(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
                     graphics.drawString(client.font, "JVM heap: " + heap().usedMiB() + "/" + heap().maxMiB()
                         + " MiB | FPS~" + estimatedFps() + " | gap " + latestTickPauseMs() + "ms", 11, 23, 0xFF93B0CC);
                     graphics.drawString(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
                         + FREEZES.lastPauseMillis() + "ms | GC observed: "
                         + FREEZES.lastGcDeltaMillis() + "ms", 11, 35, 0xFF93B0CC);
+                    graphics.drawString(client.font, "Session Panic: " + (TELEMETRY.manualActivations() + TELEMETRY.autoActivations())
+                        + " | Active: " + TELEMETRY.activeSeconds(System.nanoTime()) + "s | Last: "
+                        + TELEMETRY.lastTriggerLabel(), 11, 47, 0xFF93B0CC);
                 });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -130,10 +135,14 @@ public final class LagPanicClient implements ClientModInitializer {
 
     public static void toggle(Minecraft client) {
         if (active) deactivate(client);
-        else activate(client, false);
+        else activate(client, false, PanicTelemetry.Trigger.MANUAL);
     }
 
     public static void activate(Minecraft client, boolean automatically) {
+        activate(client, automatically, automatically ? PanicTelemetry.Trigger.TICK_SPIKES : PanicTelemetry.Trigger.MANUAL);
+    }
+
+    private static void activate(Minecraft client, boolean automatically, PanicTelemetry.Trigger trigger) {
         if (active || !recoveryAllowed || client.level == null || client.player == null) return;
         if (GraphicsSnapshot.hasPendingBackup()) {
             recoveryAllowed = GraphicsSnapshot.restorePending(client);
@@ -148,6 +157,7 @@ public final class LagPanicClient implements ClientModInitializer {
         stageWait = 0;
         activatedAt = System.nanoTime();
         lastAutomaticChange = activatedAt;
+        TELEMETRY.activated(trigger, activatedAt);
 
         MEMORY.tryRequest(config, automatically, activatedAt);
     }
@@ -159,6 +169,7 @@ public final class LagPanicClient implements ClientModInitializer {
             client.options.save();
         }
         GraphicsSnapshot.clearBackup();
+        TELEMETRY.deactivated(System.nanoTime());
         snapshot = null;
         active = false;
         autoActivated = false;
@@ -225,7 +236,7 @@ public final class LagPanicClient implements ClientModInitializer {
 
         long coolDown = config.autoCooldownSeconds * 1_000_000_000L;
         if (!active && trigger && now - lastAutomaticChange >= coolDown) {
-            activate(client, true);
+            activate(client, true, lowFps ? PanicTelemetry.Trigger.LOW_FPS : PanicTelemetry.Trigger.TICK_SPIKES);
         } else if (active && autoActivated && config.restoreAutomatically
                 && stage >= 5
                 && now - activatedAt >= 30_000_000_000L
