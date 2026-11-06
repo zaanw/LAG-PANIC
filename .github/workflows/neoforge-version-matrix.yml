@@ -1,0 +1,60 @@
+name: NeoForge v0.5.0 version compatibility (NO publishing)
+on:
+  push:
+    branches: ['feat/neoforge-v050-multiversion']
+    paths:
+      - 'neoforge/**'
+      - '.github/workflows/neoforge-version-matrix.yml'
+  pull_request:
+    paths:
+      - 'neoforge/**'
+      - '.github/workflows/neoforge-version-matrix.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    name: NeoForge ${{ matrix.minecraft }} / Java 21
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {minecraft: '1.21.1', neo: '21.1.265'}
+          - {minecraft: '1.21.2', neo: '21.2.1-beta'}
+          - {minecraft: '1.21.3', neo: '21.3.100'}
+          - {minecraft: '1.21.4', neo: '21.4.161'}
+          - {minecraft: '1.21.5', neo: '21.5.101'}
+          - {minecraft: '1.21.6', neo: '21.6.20-beta'}
+          - {minecraft: '1.21.7', neo: '21.7.25-beta'}
+          - {minecraft: '1.21.8', neo: '21.8.57'}
+          - {minecraft: '1.21.9', neo: '21.9.16-beta'}
+          - {minecraft: '1.21.10', neo: '21.10.64'}
+          - {minecraft: '1.21.11', neo: '21.11.48'}
+    defaults:
+      run:
+        working-directory: neoforge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Compile and run JUnit suite
+        run: gradle clean build --no-daemon "-Pminecraft_version=${{ matrix.minecraft }}" "-Pneo_version=${{ matrix.neo }}" "-Pmod_version=0.5.0-neoforge-${{ matrix.minecraft }}"
+      - name: Verify JAR version and Mixin classes
+        shell: bash
+        run: |
+          file="build/libs/lagpanic-neoforge-${{ matrix.minecraft }}-0.5.0-neoforge-${{ matrix.minecraft }}.jar"
+          test -f "$file"
+          unzip -l "$file" | grep -q META-INF/neoforge.mods.toml
+          unzip -l "$file" | grep -q EntityRenderDispatcherMixin.class
+          unzip -l "$file" | grep -q ParticleEngineMixin.class
+          unzip -p "$file" META-INF/neoforge.mods.toml | grep -Fq 'versionRange="[${{ matrix.minecraft }},${{ matrix.minecraft }}]"'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lagpanic-neoforge-${{ matrix.minecraft }}-v0.5.0-UNRELEASED
+          path: neoforge/build/libs/*.jar
+          if-no-files-found: error
