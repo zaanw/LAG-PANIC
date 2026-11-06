@@ -127,8 +127,8 @@ public final class SettingsScreen extends Screen {
                 width / 2, Math.min(height - 30, Math.max(18, height / 2 + 101)), 0xFF77D3EF);
         graphics.drawCenteredString(font, Component.literal(performancePage
                     ? "Stalls: " + LagPanicClient.diagnostics().count()
-                        + " | Last: " + LagPanicClient.diagnostics().lastPauseMillis()
-                        + "ms | GC observed: " + LagPanicClient.diagnostics().lastGcDeltaMillis() + "ms"
+                        + " | Worst: " + LagPanicClient.diagnostics().worstPauseMillis()
+                        + "ms | Avg: " + LagPanicClient.diagnostics().averagePauseMillis() + "ms"
                     : "F8 Panic | F9 Settings | Performance >"),
                 width / 2, Math.min(height - 12, Math.max(28, height / 2 + 114)), 0xFF8795A8);
         if (performancePage) {
