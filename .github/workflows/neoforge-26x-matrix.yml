@@ -1,0 +1,43 @@
+name: NeoForge v0.5.0 Minecraft 26.x compatibility (NO publishing)
+on:
+  push:
+    branches: ['feat/neoforge-v050-26x']
+    paths:
+      - 'neoforge/**'
+      - '.github/workflows/neoforge-26x-matrix.yml'
+  pull_request:
+    paths:
+      - 'neoforge/**'
+      - '.github/workflows/neoforge-26x-matrix.yml'
+permissions:
+  contents: read
+jobs:
+  build:
+    name: NeoForge ${{ matrix.minecraft }} / Java 25
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {minecraft: '26.1.2', neo: '26.1.2.126'}
+          - {minecraft: '26.2', neo: '26.2.0.93'}
+          - {minecraft: '26.3', neo: '26.3.0.101'}
+    defaults:
+      run:
+        working-directory: neoforge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.2.1'
+      - name: Build and run tests (never publish failed versions)
+        run: gradle clean build --no-daemon --stacktrace "-Pminecraft_version=${{ matrix.minecraft }}" "-Pneo_version=${{ matrix.neo }}" "-Pjava_target=25" "-Pmod_version=0.5.0-neoforge-${{ matrix.minecraft }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lagpanic-neoforge-${{ matrix.minecraft }}-v0.5.0-UNRELEASED
+          path: neoforge/build/libs/*.jar
+          if-no-files-found: error
