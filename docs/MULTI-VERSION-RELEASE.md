@@ -7,11 +7,11 @@ This workflow has two modes:
 
 ## Source pinning
 
-1.20–1.20.6 builds use source commit `713d68f378137ae528c43a58122df606d9c20ea7` from `feat/fabric-1.20.x`.
+1.20–1.20.6 builds use source commit `8934bf953acf1b127c7c86e5aec4a536a78be0b6` from `feat/fabric-1.20.x`.
 
 1.21.1–1.21.11 builds use the GitHub Release **tag** source. This is the current main-line mod.
 
-26.1–26.3 builds use commit `7c17d3092f5c473da11513613809018bd5b26aa4` from `feat/fabric-26x-matrix`.
+26.1–26.3 builds use commit `d028f23f3213e0b49a2d0499bce23aecf3503ade` from `feat/fabric-26x-matrix`.
 
 The 26.x port has a distinct codebase evolved from the 26.3 beta and is **not feature-parity verified** with the 1.21.x mainline. The 1.20.x port has separate compatibility changes. Changing the pins requires a new reviewed workflow commit and fresh tests.
 
