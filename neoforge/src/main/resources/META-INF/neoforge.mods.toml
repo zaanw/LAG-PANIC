@@ -8,6 +8,9 @@ displayName="Lag Panic"
 authors="zaan"
 description='''Emergency client-side performance mode with offline session diagnostics and graphics recovery.'''
 displayTest="IGNORE_SERVER_VERSION"
+
+[[mixins]]
+config="lagpanic.mixins.json"
 [[dependencies.lagpanic]]
 modId="neoforge"
 type="required"
