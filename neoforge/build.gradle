@@ -14,6 +14,11 @@ neoForge {
             gameDirectory = project.file('runs/client')
         }
     }
+    mods {
+        lagpanic {
+            sourceSet sourceSets.main
+        }
+    }
 }
 repositories { mavenCentral() }
 dependencies {
