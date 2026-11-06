@@ -118,14 +118,14 @@ public final class SettingsScreen extends Screen {
     }
 
     @Override public void render(GuiGraphics graphics, int mx, int my, float partialTick) {
-        super.extractRenderState(graphics, mx, my, partialTick);
+        super.render(graphics, mx, my, partialTick);
         graphics.drawCenteredString(font, Component.literal(performancePage ? "LAG PANIC  /  PERFORMANCE" : "LAG PANIC  /  MIDNIGHT"),
                 width / 2, Math.max(7, height / 2 - 157), 0xFF77D3EF);
         MemoryPressure.Heap heap = LagPanicClient.heap();
-        graphics.centeredText(font, Component.literal(
+        graphics.drawCenteredString(font, Component.literal(
                 "JVM heap: " + heap.usedMiB() + " / " + heap.maxMiB() + " MiB (" + heap.percent() + "%)"),
                 width / 2, Math.min(height - 30, Math.max(18, height / 2 + 101)), 0xFF77D3EF);
-        graphics.centeredText(font, Component.literal(performancePage
+        graphics.drawCenteredString(font, Component.literal(performancePage
                     ? "Stalls: " + LagPanicClient.diagnostics().count()
                         + " | Last: " + LagPanicClient.diagnostics().lastPauseMillis()
                         + "ms | GC observed: " + LagPanicClient.diagnostics().lastGcDeltaMillis() + "ms"
