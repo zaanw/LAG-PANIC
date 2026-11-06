@@ -9,6 +9,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import java.lang.reflect.Constructor;
 
 
 public final class LagPanicClient implements ClientModInitializer {
@@ -51,17 +52,10 @@ public final class LagPanicClient implements ClientModInitializer {
 
     @Override public void onInitializeClient() {
         config = Config.load();
-        String category = "key.categories.lagpanic";
         KeyMapping panic = KeyBindingHelper.registerKeyBinding(
-                new KeyMapping("key.lagpanic.toggle", InputConstants.Type.KEYSYM,
-                        GLFW.GLFW_KEY_F8, category));
+                createKeyMapping("key.lagpanic.toggle", GLFW.GLFW_KEY_F8));
         KeyMapping settings = KeyBindingHelper.registerKeyBinding(
-                new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYSYM,
-                        92, category));
-
-        KeyMapping settingsFallback = KeyBindingHelper.registerKeyBinding(
-                new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYSYM,
-                        GLFW.GLFW_KEY_F9, category));
+                createKeyMapping("key.lagpanic.settings", GLFW.GLFW_KEY_F9));
 
         HudRenderCallback.EVENT.register(
                 (graphics, tracker) -> {
@@ -76,7 +70,7 @@ public final class LagPanicClient implements ClientModInitializer {
                     if (client.player == null || client.level == null) return;
                     graphics.fill(5, 5, 252, 53, 0xC81A1C23);
                     graphics.drawString(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
-                    graphics.text(client.font, "JVM heap: " + heap().usedMiB() + "/" + heap().maxMiB()
+                    graphics.drawString(client.font, "JVM heap: " + heap().usedMiB() + "/" + heap().maxMiB()
                         + " MiB | FPS~" + estimatedFps() + " | gap " + latestTickPauseMs() + "ms", 11, 23, 0xFF93B0CC);
                     graphics.text(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
                         + FREEZES.lastPauseMillis() + "ms | GC observed: "
@@ -90,14 +84,42 @@ public final class LagPanicClient implements ClientModInitializer {
             }
             while (panic.consumeClick()) toggle(client);
             while (settings.consumeClick()) openSettings(client);
-            while (settingsFallback.consumeClick()) openSettings(client);
-            tick(client);
+                        tick(client);
         });
     }
 
+    private static KeyMapping createKeyMapping(String translationKey, int keyCode) {
+        try {
+            Class<?> categoryClass;
+            try {
+                categoryClass = Class.forName("net.minecraft.client.KeyMapping$Category");
+            } catch (ClassNotFoundException legacyMinecraft) {
+                return new KeyMapping(translationKey, InputConstants.Type.KEYSYM,
+                        keyCode, "key.categories.lagpanic");
+            }
+
+            Class<?> identifierClass;
+            try {
+                identifierClass = Class.forName("net.minecraft.resources.Identifier");
+            } catch (ClassNotFoundException legacyName) {
+                identifierClass = Class.forName("net.minecraft.resources.ResourceLocation");
+            }
+            Object identifier = identifierClass.getMethod("parse", String.class)
+                    .invoke(null, "lagpanic:main");
+            Object category = categoryClass.getMethod("register", identifierClass)
+                    .invoke(null, identifier);
+            Constructor<?> constructor = KeyMapping.class.getConstructor(
+                    String.class, InputConstants.Type.class, int.class, categoryClass);
+            return (KeyMapping) constructor.newInstance(
+                    translationKey, InputConstants.Type.KEYSYM, keyCode, category);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Could not create Lag Panic key category", e);
+        }
+    }
+
     public static void openSettings(Minecraft client) {
-        if (!(client.gui.screen() instanceof SettingsScreen))
-            client.setScreen(new SettingsScreen(client.gui.screen()));
+        if (!(client.screen instanceof SettingsScreen))
+            client.setScreen(new SettingsScreen(client.screen));
     }
 
     public static void toggle(Minecraft client) {
@@ -155,7 +177,7 @@ public final class LagPanicClient implements ClientModInitializer {
         }
 
         long now = System.nanoTime();
-        if (client.gui.screen() != null) {
+        if (client.screen != null) {
             DETECTOR.reset();
             FRAMES.reset();
             return;
