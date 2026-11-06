@@ -1,23 +1,69 @@
-name: Build Fabric mod
+name: Fabric 1.21.x version matrix
 on:
   push:
-    branches: [main, 'feat/**']
+    branches: ['feat/fabric-matrix', 'feat/standby-performance']
+    paths:
+      - 'src/**'
+      - 'build.gradle'
+      - 'gradle.properties'
+      - 'settings.gradle'
+      - '.github/workflows/build.yml'
   pull_request:
+    paths:
+      - 'src/**'
+      - 'build.gradle'
+      - 'gradle.properties'
+      - 'settings.gradle'
+      - '.github/workflows/build.yml'
+permissions:
+  contents: read
 jobs:
-  build:
+  fabric:
+    name: Fabric ${{ matrix.minecraft }} / API ${{ matrix.fabric_api }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - minecraft: '1.21.1'
+            fabric_api: '0.116.13+1.21.1'
+          - minecraft: '1.21.2'
+            fabric_api: '0.106.1+1.21.2'
+          - minecraft: '1.21.3'
+            fabric_api: '0.114.1+1.21.3'
+          - minecraft: '1.21.4'
+            fabric_api: '0.119.3+1.21.4'
+          - minecraft: '1.21.5'
+            fabric_api: '0.124.2+1.21.5'
+          - minecraft: '1.21.6'
+            fabric_api: '0.128.2+1.21.6'
+          - minecraft: '1.21.7'
+            fabric_api: '0.128.1+1.21.7'
+          - minecraft: '1.21.8'
+            fabric_api: '0.136.1+1.21.8'
+          - minecraft: '1.21.9'
+            fabric_api: '0.134.0+1.21.9'
+          - minecraft: '1.21.10'
+            fabric_api: '0.138.4+1.21.10'
+          - minecraft: '1.21.11'
+            fabric_api: '0.141.6+1.21.11'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '9.6.0'
-      - run: gradle clean build --stacktrace
+          gradle-version: '9.2.1'
+      - name: Compile and run unit tests
+        run: >-
+          gradle clean build --stacktrace --no-daemon
+          -Pminecraft_version=${{ matrix.minecraft }}
+          -Pfabric_api_version=${{ matrix.fabric_api }}
+          -Pmod_version=0.3.0-fabric-${{ matrix.minecraft }}-dev
       - uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: lagpanic-jar
-          path: build/libs/lagpanic-*.jar
+          name: lagpanic-fabric-${{ matrix.minecraft }}-development
+          path: build/libs/lagpanic-fabric-${{ matrix.minecraft }}-*.jar

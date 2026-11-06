@@ -1,15 +1,16 @@
 package dev.zaan.lagpanic;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.glfw.GLFW;
 import dev.zaan.lagpanic.ui.SettingsScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
+import java.lang.reflect.Constructor;
+
 
 public final class LagPanicClient implements ClientModInitializer {
     public static Config config;
@@ -26,6 +27,8 @@ public final class LagPanicClient implements ClientModInitializer {
     private static long lastAutomaticChange;
     private static long lastLowFpsNanos;
     private static int sampleTickCounter;
+    private static boolean monitoringEnabled;
+    private static int lowFpsCheckTicks;
     private static MemoryPressure.Heap cachedHeap;
     private static int stage = 0;
     private static int stageWait = 0;
@@ -46,41 +49,33 @@ public final class LagPanicClient implements ClientModInitializer {
     public static FreezeDiagnostics diagnostics() { return FREEZES; }
     public static String status() {
         if (!recoveryAllowed && attemptedRecovery) return "RECOVERY ERROR: check logs";
-        return active ? "PANIC: " + config.profile : "STANDBY";
+        return active ? "PANIC: " + config.profile : "OFF";
     }
 
     @Override public void onInitializeClient() {
         config = Config.load();
-        KeyMapping.Category category = KeyMapping.Category.register(
-                Identifier.fromNamespaceAndPath("lagpanic", "general"));
-        KeyMapping panic = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.lagpanic.toggle", InputConstants.Type.KEYBOARD,
-                        InputConstants.KEY_F8, category));
-        KeyMapping settings = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYBOARD,
-                        92, category));
+        KeyMapping panic = KeyBindingHelper.registerKeyBinding(
+                createKeyMapping("key.lagpanic.toggle", GLFW.GLFW_KEY_F8));
+        KeyMapping settings = KeyBindingHelper.registerKeyBinding(
+                createKeyMapping("key.lagpanic.settings", GLFW.GLFW_KEY_F9));
 
-        KeyMapping settingsFallback = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYBOARD,
-                        InputConstants.KEY_F9, category));
-
-        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
-                Identifier.fromNamespaceAndPath("lagpanic", "debug"),
+        HudRenderCallback.EVENT.register(
                 (graphics, tracker) -> {
 
+                    // STANDBY without Auto Panic or overlay does no per-frame work.
+                    if (!config.debugOverlay && !(config.auto && config.autoWhenSlowFps)) return;
                     Minecraft client = Minecraft.getInstance();
-                    if (config.auto && config.autoWhenSlowFps
-                            && client.level != null && client.player != null
-                            && client.gui.screen() == null) {
+                    if (client.level != null && client.player != null
+                            && client.screen == null) {
                         FRAMES.sample(System.nanoTime());
                     }
                     if (!config.debugOverlay) return;
                     if (client.player == null || client.level == null) return;
                     graphics.fill(5, 5, 252, 53, 0xC81A1C23);
-                    graphics.text(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
-                    graphics.text(client.font, "JVM heap: " + heap().usedMiB() + "/" + heap().maxMiB()
+                    graphics.drawString(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
+                    graphics.drawString(client.font, "JVM heap: " + heap().usedMiB() + "/" + heap().maxMiB()
                         + " MiB | FPS~" + estimatedFps() + " | gap " + latestTickPauseMs() + "ms", 11, 23, 0xFF93B0CC);
-                    graphics.text(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
+                    graphics.drawString(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
                         + FREEZES.lastPauseMillis() + "ms | GC observed: "
                         + FREEZES.lastGcDeltaMillis() + "ms", 11, 35, 0xFF93B0CC);
                 });
@@ -92,14 +87,45 @@ public final class LagPanicClient implements ClientModInitializer {
             }
             while (panic.consumeClick()) toggle(client);
             while (settings.consumeClick()) openSettings(client);
-            while (settingsFallback.consumeClick()) openSettings(client);
             tick(client);
         });
     }
 
+    private static KeyMapping createKeyMapping(String translationKey, int keyCode) {
+        try {
+            Class<?> categoryClass;
+            try {
+                categoryClass = Class.forName("net.minecraft.client.KeyMapping$Category");
+            } catch (ClassNotFoundException legacyMinecraft) {
+                Constructor<KeyMapping> legacyConstructor = KeyMapping.class.getConstructor(
+                        String.class, InputConstants.Type.class, int.class, String.class);
+                return legacyConstructor.newInstance(
+                        translationKey, InputConstants.Type.KEYSYM,
+                        keyCode, "key.categories.lagpanic");
+            }
+
+            Class<?> identifierClass;
+            try {
+                identifierClass = Class.forName("net.minecraft.resources.Identifier");
+            } catch (ClassNotFoundException legacyName) {
+                identifierClass = Class.forName("net.minecraft.resources.ResourceLocation");
+            }
+            Object identifier = identifierClass.getMethod("parse", String.class)
+                    .invoke(null, "lagpanic:main");
+            Object category = categoryClass.getMethod("register", identifierClass)
+                    .invoke(null, identifier);
+            Constructor<?> constructor = KeyMapping.class.getConstructor(
+                    String.class, InputConstants.Type.class, int.class, categoryClass);
+            return (KeyMapping) constructor.newInstance(
+                    translationKey, InputConstants.Type.KEYSYM, keyCode, category);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Could not create Lag Panic key category", e);
+        }
+    }
+
     public static void openSettings(Minecraft client) {
-        if (!(client.gui.screen() instanceof SettingsScreen))
-            client.gui.setScreen(new SettingsScreen(client.gui.screen()));
+        if (!(client.screen instanceof SettingsScreen))
+            client.setScreen(new SettingsScreen(client.screen));
     }
 
     public static void toggle(Minecraft client) {
@@ -143,6 +169,21 @@ public final class LagPanicClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft client) {
+        // Idle STANDBY must not constantly query memory / GC, scan frame windows,
+        // or inspect tick spikes. Keep keybindings active for instant activation.
+        if (!active && !config.auto && !config.debugOverlay) {
+            if (monitoringEnabled) {
+                DETECTOR.reset();
+                FRAMES.reset();
+                cachedHeap = null;
+                lastLowFpsNanos = 0L;
+                sampleTickCounter = 0;
+                lowFpsCheckTicks = 0;
+                monitoringEnabled = false;
+            }
+            return;
+        }
+        monitoringEnabled = true;
         if (client.level == null || client.player == null) {
             if (active) deactivate(client);
             DETECTOR.reset();
@@ -157,7 +198,7 @@ public final class LagPanicClient implements ClientModInitializer {
         }
 
         long now = System.nanoTime();
-        if (client.gui.screen() != null) {
+        if (client.screen != null) {
             DETECTOR.reset();
             FRAMES.reset();
             return;
@@ -174,7 +215,11 @@ public final class LagPanicClient implements ClientModInitializer {
             FRAMES.reset();
             return;
         }
-        boolean lowFps = config.autoWhenSlowFps && FRAMES.sustainedLowFps(config.lowFpsThreshold);
+        // Sampling is per-frame, but checking the 120-frame window every client tick
+        // is unnecessary. Ten ticks between decisions keeps this responsive.
+        boolean lowFps = config.autoWhenSlowFps && ++lowFpsCheckTicks >= 10
+                && FRAMES.sustainedLowFps(config.lowFpsThreshold);
+        if (lowFpsCheckTicks >= 10) lowFpsCheckTicks = 0;
         if (lowFps) lastLowFpsNanos = now;
         boolean trigger = spikeTrigger || lowFps;
 

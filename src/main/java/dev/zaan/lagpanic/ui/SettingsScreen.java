@@ -3,7 +3,7 @@ package dev.zaan.lagpanic.ui;
 import dev.zaan.lagpanic.Config;
 import dev.zaan.lagpanic.LagPanicClient;
 import dev.zaan.lagpanic.MemoryPressure;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -64,7 +64,7 @@ public final class SettingsScreen extends Screen {
             return;
         }
 
-        option(left, y, w, "Panic: " + (LagPanicClient.isActive() ? "ACTIVE" : "STANDBY"),
+        option(left, y, w, "Panic: " + (LagPanicClient.isActive() ? "ON" : "OFF"),
                 () -> LagPanicClient.toggle(minecraft));
         option(right, y, w, "Auto: " + bool(c.auto), () -> c.auto = !c.auto);
 
@@ -117,15 +117,15 @@ public final class SettingsScreen extends Screen {
                 .bounds(right, y + row * 8 + 2, w, 20).build());
     }
 
-    @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mx, int my, float partialTick) {
-        super.extractRenderState(graphics, mx, my, partialTick);
-        graphics.centeredText(font, Component.literal(performancePage ? "LAG PANIC  /  PERFORMANCE" : "LAG PANIC  /  MIDNIGHT"),
+    @Override public void render(GuiGraphics graphics, int mx, int my, float partialTick) {
+        super.render(graphics, mx, my, partialTick);
+        graphics.drawCenteredString(font, Component.literal(performancePage ? "LAG PANIC  /  PERFORMANCE" : "LAG PANIC  /  MIDNIGHT"),
                 width / 2, Math.max(7, height / 2 - 157), 0xFF77D3EF);
         MemoryPressure.Heap heap = LagPanicClient.heap();
-        graphics.centeredText(font, Component.literal(
+        graphics.drawCenteredString(font, Component.literal(
                 "JVM heap: " + heap.usedMiB() + " / " + heap.maxMiB() + " MiB (" + heap.percent() + "%)"),
                 width / 2, Math.min(height - 30, Math.max(18, height / 2 + 101)), 0xFF77D3EF);
-        graphics.centeredText(font, Component.literal(performancePage
+        graphics.drawCenteredString(font, Component.literal(performancePage
                     ? "Stalls: " + LagPanicClient.diagnostics().count()
                         + " | Last: " + LagPanicClient.diagnostics().lastPauseMillis()
                         + "ms | GC observed: " + LagPanicClient.diagnostics().lastGcDeltaMillis() + "ms"
@@ -133,5 +133,5 @@ public final class SettingsScreen extends Screen {
                 width / 2, Math.min(height - 12, Math.max(28, height / 2 + 114)), 0xFF8795A8);
     }
 
-    @Override public void onClose() { minecraft.gui.setScreen(parent); }
+    @Override public void onClose() { minecraft.setScreen(parent); }
 }

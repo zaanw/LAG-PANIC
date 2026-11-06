@@ -12,7 +12,6 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.CloudStatus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
-import net.minecraft.server.level.ParticleStatus;
 
 public final class GraphicsSnapshot {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -32,12 +31,28 @@ public final class GraphicsSnapshot {
     }
     public static boolean hasPendingBackup() { return Files.exists(backupPath()); }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static Enum<?> particleValue(Options options, String name) {
+        Enum<?> current = (Enum<?>) options.particles().get();
+        return Enum.valueOf((Class) current.getDeclaringClass(), name);
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void setParticleValue(Options options, String name) {
+        Enum<?> value = particleValue(options, name);
+        ((net.minecraft.client.OptionInstance) options.particles()).set(value);
+    }
+
+    private static int particleOrdinal(Options options, String name) {
+        return particleValue(options, name).ordinal();
+    }
+
     public static GraphicsSnapshot prepare(Options o, Config c) {
         GraphicsSnapshot s = new GraphicsSnapshot();
         s.originalRender = o.renderDistance().get();
         s.originalSimulation = o.simulationDistance().get();
         s.originalEntities = o.entityDistanceScaling().get();
-        s.originalParticles = o.particles().get().name();
+        s.originalParticles = ((Enum<?>) o.particles().get()).name();
         s.originalClouds = o.cloudStatus().get().name();
         Preset p = Preset.forName(c.profile);
         s.appliedRender = c.changeRenderDistance
@@ -53,11 +68,11 @@ public final class GraphicsSnapshot {
         s.appliedEntities = c.changeEntityDistance
                 ? Math.min(s.originalEntities, p.entityDistance()) : s.originalEntities;
 
-        ParticleStatus particles = o.particles().get();
-        ParticleStatus particleTarget = "Light".equals(c.profile)
-                ? ParticleStatus.DECREASED : ParticleStatus.MINIMAL;
-        s.appliedParticles = c.changeParticles && particles.ordinal() < particleTarget.ordinal()
-                ? particleTarget.name() : particles.name();
+        Enum<?> particles = (Enum<?>) o.particles().get();
+        String particleTarget = "Light".equals(c.profile) ? "DECREASED" : "MINIMAL";
+        s.appliedParticles = c.changeParticles
+                && particles.ordinal() < particleOrdinal(o, particleTarget)
+                ? particleTarget : particles.name();
 
         CloudStatus clouds = o.cloudStatus().get();
         CloudStatus cloudTarget = "Light".equals(c.profile)
@@ -72,7 +87,7 @@ public final class GraphicsSnapshot {
             case 0 -> {
                 if (!originalParticles.equals(appliedParticles)
                         && o.particles().get().name().equals(originalParticles))
-                    o.particles().set(ParticleStatus.valueOf(appliedParticles));
+                    setParticleValue(o, appliedParticles);
             }
             case 1 -> {
                 if (!originalClouds.equals(appliedClouds)
@@ -108,7 +123,7 @@ public final class GraphicsSnapshot {
             o.entityDistanceScaling().set(originalEntities);
         if (!originalParticles.equals(appliedParticles)
                 && o.particles().get().name().equals(appliedParticles))
-            o.particles().set(ParticleStatus.valueOf(originalParticles));
+            setParticleValue(o, originalParticles);
         if (!originalClouds.equals(appliedClouds)
                 && o.cloudStatus().get().name().equals(appliedClouds))
             o.cloudStatus().set(CloudStatus.valueOf(originalClouds));
