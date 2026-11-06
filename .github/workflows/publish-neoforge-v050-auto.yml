@@ -1,0 +1,105 @@
+name: One-time NeoForge v0.5.0 1.21.x validated release
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'neoforge/**'
+      - '.github/workflows/publish-neoforge-v050-auto.yml'
+permissions:
+  contents: read
+concurrency:
+  group: modrinth-neoforge-v050-1.21x
+  cancel-in-progress: false
+jobs:
+  publish:
+    # One-time opt-in from an explicitly labelled merge commit, not every future push.
+    if: contains(github.event.head_commit.message, '[release-neoforge-v050-21x]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {minecraft: '1.21.1', neo: '21.1.265'}
+          - {minecraft: '1.21.2', neo: '21.2.1-beta'}
+          - {minecraft: '1.21.3', neo: '21.3.100'}
+          - {minecraft: '1.21.4', neo: '21.4.161'}
+          - {minecraft: '1.21.5', neo: '21.5.101'}
+          - {minecraft: '1.21.6', neo: '21.6.20-beta'}
+          - {minecraft: '1.21.7', neo: '21.7.25-beta'}
+          - {minecraft: '1.21.8', neo: '21.8.57'}
+          - {minecraft: '1.21.9', neo: '21.9.16-beta'}
+          - {minecraft: '1.21.10', neo: '21.10.64'}
+          - {minecraft: '1.21.11', neo: '21.11.48'}
+    defaults:
+      run:
+        working-directory: neoforge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Validate Modrinth configuration
+        env:
+          MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          test -n "$MODRINTH_PROJECT_ID"
+          test -n "$MODRINTH_TOKEN"
+      - name: Build and unit-test exact Minecraft version
+        run: gradle clean build --no-daemon "-Pminecraft_version=${{ matrix.minecraft }}" "-Pneo_version=${{ matrix.neo }}" "-Pmod_version=0.5.0-neoforge-${{ matrix.minecraft }}"
+      - name: Verify runnable JAR and exact loader metadata
+        shell: bash
+        run: |
+          mkdir -p dist
+          jar="build/libs/lagpanic-neoforge-${{ matrix.minecraft }}-0.5.0-neoforge-${{ matrix.minecraft }}.jar"
+          test -f "$jar"
+          unzip -l "$jar" | grep -q 'META-INF/neoforge.mods.toml'
+          unzip -l "$jar" | grep -q 'EntityRenderDispatcherMixin.class'
+          unzip -l "$jar" | grep -q 'ParticleEngineMixin.class'
+          unzip -p "$jar" META-INF/neoforge.mods.toml | grep -Fq 'versionRange="[${{ matrix.minecraft }},${{ matrix.minecraft }}]"'
+          cp "$jar" "dist/lagpanic-neoforge-${{ matrix.minecraft }}.jar"
+      - name: Set up virtual display
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+      - name: Require a successful NeoForge client startup
+        shell: bash
+        run: |
+          set +e
+          export LIBGL_ALWAYS_SOFTWARE=1
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout --signal=TERM 240s gradle runClient --no-daemon "-Pminecraft_version=${{ matrix.minecraft }}" "-Pneo_version=${{ matrix.neo }}" > publish-smoke.log 2>&1
+          rc=$?
+          set -e
+          tail -n 75 publish-smoke.log
+          if [[ "$rc" != 0 && "$rc" != 124 ]]; then exit 1; fi
+          if grep -Ei 'Mixin apply failed|MixinTransformerError|FATAL|Exception in thread|ModLoadingException' publish-smoke.log runs/client/logs/latest.log 2>/dev/null; then exit 1; fi
+          grep -E 'Sound engine started|OpenAL initialized|Created: [0-9]+x[0-9]+x' publish-smoke.log runs/client/logs/latest.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lagpanic-neoforge-${{ matrix.minecraft }}-v0.5.0-runtime-verified
+          path: neoforge/dist/*.jar
+      - name: Publish strictly verified NeoForge version to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: neoforge/dist/lagpanic-neoforge-${{ matrix.minecraft }}.jar
+          name: Lag Panic v0.5.0 — NeoForge ${{ matrix.minecraft }}
+          version: v0.5.0-neoforge-${{ matrix.minecraft }}
+          version-type: release
+          loaders: neoforge
+          game-versions: ${{ matrix.minecraft }}
+          game-version-filter: none
+          environment: client
+          fail-mode: fail
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: neoforge-${{ matrix.minecraft }}-publish-logs
+          path: |
+            neoforge/publish-smoke.log
+            neoforge/runs/client/logs/*.log
+          if-no-files-found: ignore
