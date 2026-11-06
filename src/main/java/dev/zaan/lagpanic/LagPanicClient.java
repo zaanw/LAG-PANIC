@@ -72,7 +72,7 @@ public final class LagPanicClient implements ClientModInitializer {
                     graphics.drawString(client.font, "LAG PANIC | " + status(), 11, 11, 0xFFE4EDF7);
                     graphics.drawString(client.font, "JVM heap: " + heap().usedMiB() + "/" + heap().maxMiB()
                         + " MiB | FPS~" + estimatedFps() + " | gap " + latestTickPauseMs() + "ms", 11, 23, 0xFF93B0CC);
-                    graphics.text(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
+                    graphics.drawString(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
                         + FREEZES.lastPauseMillis() + "ms | GC observed: "
                         + FREEZES.lastGcDeltaMillis() + "ms", 11, 35, 0xFF93B0CC);
                 });
