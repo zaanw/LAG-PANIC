@@ -33,10 +33,10 @@ public final class LagPanicClient implements ClientModInitializer {
 
     public static boolean isActive() { return active; }
     public static boolean shouldHidePrimedTnt() {
-        return active && config != null && config.hidePrimedTnt;
+        return ExplosionRenderPolicy.hidePrimedTnt(active, config);
     }
     public static boolean shouldHideExplosionParticles() {
-        return active && config != null && config.hideExplosionParticles;
+        return ExplosionRenderPolicy.hideExplosionParticles(active, config);
     }
     public static int latestTickPauseMs() { return DETECTOR.lastGapMs(); }
     public static MemoryPressure.Heap heap() {
