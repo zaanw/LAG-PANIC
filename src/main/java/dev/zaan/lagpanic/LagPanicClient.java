@@ -54,14 +54,14 @@ public final class LagPanicClient implements ClientModInitializer {
         KeyMapping.Category category = KeyMapping.Category.register(
                 Identifier.fromNamespaceAndPath("lagpanic", "general"));
         KeyMapping panic = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.lagpanic.toggle", InputConstants.Type.KEYBOARD,
+                new KeyMapping("key.lagpanic.toggle", keyType(),
                         InputConstants.KEY_F8, category));
         KeyMapping settings = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.lagpanic.settings", InputConstants.Type.KEYBOARD,
+                new KeyMapping("key.lagpanic.settings", keyType(),
                         92, category)); // GLFW_KEY_BACKSLASH (keyboard layout dependent)
         // Physical F9 fallback on layouts where backslash cannot be typed directly.
         KeyMapping settingsFallback = KeyMappingHelper.registerKeyMapping(
-                new KeyMapping("key.lagpanic.settings_fallback", InputConstants.Type.KEYBOARD,
+                new KeyMapping("key.lagpanic.settings_fallback", keyType(),
                         InputConstants.KEY_F9, category));
 
 
@@ -72,7 +72,7 @@ public final class LagPanicClient implements ClientModInitializer {
                     Minecraft client = Minecraft.getInstance();
                     if (config.auto && config.autoWhenSlowFps
                             && client.level != null && client.player != null
-                            && client.gui.screen() == null) {
+                            && currentScreen(client) == null) {
                         FRAMES.sample(System.nanoTime());
                     }
                     if (!config.debugOverlay) return;
@@ -98,9 +98,53 @@ public final class LagPanicClient implements ClientModInitializer {
         });
     }
 
+    /** Compatibility for the key enum renamed after 26.2. */
+    private static InputConstants.Type keyType() {
+        try {
+            return (InputConstants.Type) InputConstants.Type.class.getField("KEYBOARD").get(null);
+        } catch (NoSuchFieldException olderMinecraft) {
+            try {
+                return (InputConstants.Type) InputConstants.Type.class.getField("KEYSYM").get(null);
+            } catch (ReflectiveOperationException failure) {
+                throw new IllegalStateException("Cannot resolve keyboard type", failure);
+            }
+        } catch (IllegalAccessException failure) {
+            throw new IllegalStateException("Cannot access keyboard type", failure);
+        }
+    }
+
+    /** Screen ownership moved between Minecraft and Gui in 26.x. */
+    public static net.minecraft.client.gui.screens.Screen currentScreen(Minecraft client) {
+        try {
+            try {
+                return (net.minecraft.client.gui.screens.Screen) client.gui.getClass()
+                        .getMethod("screen").invoke(client.gui);
+            } catch (NoSuchMethodException olderMinecraft) {
+                return (net.minecraft.client.gui.screens.Screen)
+                        Minecraft.class.getField("screen").get(client);
+            }
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Cannot read current screen", failure);
+        }
+    }
+
+    public static void showScreen(Minecraft client, net.minecraft.client.gui.screens.Screen screen) {
+        try {
+            try {
+                client.gui.getClass().getMethod("setScreen",
+                        net.minecraft.client.gui.screens.Screen.class).invoke(client.gui, screen);
+            } catch (NoSuchMethodException olderMinecraft) {
+                Minecraft.class.getMethod("setScreen",
+                        net.minecraft.client.gui.screens.Screen.class).invoke(client, screen);
+            }
+        } catch (ReflectiveOperationException failure) {
+            throw new IllegalStateException("Cannot change screen", failure);
+        }
+    }
+
     public static void openSettings(Minecraft client) {
-        if (!(client.gui.screen() instanceof SettingsScreen))
-            client.gui.setScreen(new SettingsScreen(client.gui.screen()));
+        if (!(currentScreen(client) instanceof SettingsScreen))
+            showScreen(client, new SettingsScreen(currentScreen(client)));
     }
 
     public static void toggle(Minecraft client) {
@@ -159,7 +203,7 @@ public final class LagPanicClient implements ClientModInitializer {
         }
 
         long now = System.nanoTime();
-        if (client.gui.screen() != null) {
+        if (currentScreen(client) != null) {
             DETECTOR.reset();
             FRAMES.reset();
             return;
