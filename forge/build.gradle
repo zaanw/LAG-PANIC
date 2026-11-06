@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+group = 'dev.zaan'
+version = project.mod_version
+base { archivesName = 'lagpanic-forge' }
+
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8'; options.release = 21 }
+
+minecraft {
+    mappings channel: 'official', version: project.minecraft_version
+    runs {
+        client {
+            workingDirectory project.file('run')
+            mods { lagpanic { source sourceSets.main } }
+        }
+    }
+}
+
+repositories { mavenCentral() }
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+test { useJUnitPlatform() }
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('META-INF/mods.toml') { expand version: project.version }
+}
+jar {
+    manifest {
+        attributes([
+            'Specification-Title': 'Lag Panic',
+            'Specification-Vendor': 'zaan',
+            'Implementation-Title': project.name,
+            'Implementation-Version': project.version
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
