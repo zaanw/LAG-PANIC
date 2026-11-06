@@ -131,6 +131,15 @@ public final class SettingsScreen extends Screen {
                         + "ms | GC observed: " + LagPanicClient.diagnostics().lastGcDeltaMillis() + "ms"
                     : "F8 Panic | F9 Settings | Performance >"),
                 width / 2, Math.min(height - 12, Math.max(28, height / 2 + 114)), 0xFF8795A8);
+        if (performancePage) {
+            var telemetry = LagPanicClient.telemetry();
+            graphics.drawCenteredString(font, Component.literal(
+                    "Session: " + telemetry.manualActivations() + " manual / "
+                    + telemetry.autoActivations() + " auto | Panic time: "
+                    + telemetry.activeSeconds(System.nanoTime()) + "s | Last: "
+                    + telemetry.lastTriggerLabel()),
+                    width / 2, Math.min(height - 12, Math.max(28, height / 2 + 127)), 0xFF77D3EF);
+        }
     }
 
     @Override public void onClose() { minecraft.setScreen(parent); }
