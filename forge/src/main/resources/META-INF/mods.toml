@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[52,)"
+license="MIT"
+clientSideOnly=true
+[[mods]]
+modId="lagpanic"
+version="${version}"
+displayName="Lag Panic"
+authors="zaan"
+description='''Emergency reversible graphics presets for Minecraft 1.21.1. Forge development port; not yet runtime tested.'''
+[[dependencies.lagpanic]]
+modId="forge"
+mandatory=true
+versionRange="[52,)"
+ordering="NONE"
+side="CLIENT"
+[[dependencies.lagpanic]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.21.1,1.21.2)"
+ordering="NONE"
+side="CLIENT"
