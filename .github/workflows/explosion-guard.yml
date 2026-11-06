@@ -1,0 +1,39 @@
+name: Explosion rendering guard validation
+on:
+  push:
+    branches: ['feat/explosion-stress-guard']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fabric:
+    name: Fabric ${{ matrix.minecraft }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - minecraft: '1.21.1'
+            fabric_api: '0.116.13+1.21.1'
+          - minecraft: '1.21.11'
+            fabric_api: '0.141.6+1.21.11'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.2.1'
+      - name: Compile and test
+        run: >-
+          gradle clean build --no-daemon --stacktrace
+          -Pminecraft_version=${{ matrix.minecraft }}
+          -Pfabric_api_version=${{ matrix.fabric_api }}
+          -Pmod_version=0.3.1-fabric-${{ matrix.minecraft }}-dev
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: lagpanic-explosion-guard-${{ matrix.minecraft }}
+          path: build/libs/lagpanic-fabric-${{ matrix.minecraft }}-*.jar
