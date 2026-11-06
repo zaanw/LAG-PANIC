@@ -1,0 +1,22 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MIT"
+[[mods]]
+modId="lagpanic"
+version="${version}"
+displayName="Lag Panic"
+authors="zaan"
+description='''Emergency client-side performance mode with offline session diagnostics and graphics recovery.'''
+displayTest="IGNORE_SERVER_VERSION"
+[[dependencies.lagpanic]]
+modId="neoforge"
+type="required"
+versionRange="[21.1,)"
+ordering="NONE"
+side="CLIENT"
+[[dependencies.lagpanic]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1,1.21.2)"
+ordering="NONE"
+side="CLIENT"
