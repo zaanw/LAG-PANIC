@@ -65,7 +65,7 @@ public final class SettingsScreen extends Screen {
             return;
         }
 
-        option(left, y, w, "Panic: " + (LagPanicClient.isActive() ? "ACTIVE" : "STANDBY"),
+        option(left, y, w, "Panic: " + (LagPanicClient.isActive() ? "ON" : "OFF"),
                 () -> LagPanicClient.toggle(minecraft));
         option(right, y, w, "Auto: " + bool(c.auto), () -> c.auto = !c.auto);
 
