@@ -47,8 +47,8 @@ public final class PanicTelemetry {
     }
 
     public String lastTriggerLabel() {
+        if (lastTrigger == null) return "NONE";
         return switch (lastTrigger) {
-            case null -> "NONE";
             case MANUAL -> "MANUAL";
             case LOW_FPS -> "LOW FPS";
             case TICK_SPIKES -> "TICK SPIKES";
