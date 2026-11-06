@@ -9,8 +9,22 @@ import net.neoforged.fml.loading.FMLEnvironment;
 @Mod("lagpanic")
 public final class LagPanicNeoForge {
     public LagPanicNeoForge(IEventBus modBus) {
-        if (FMLEnvironment.dist == Dist.CLIENT) {
+        if (isPhysicalClient()) {
             LagPanicClient.initialize(modBus);
+        }
+    }
+
+    private static boolean isPhysicalClient() {
+        try {
+            Object distribution;
+            try {
+                distribution = FMLEnvironment.class.getMethod("getDist").invoke(null);
+            } catch (NoSuchMethodException legacy) {
+                distribution = FMLEnvironment.class.getField("dist").get(null);
+            }
+            return distribution == Dist.CLIENT;
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("Cannot determine NeoForge distribution", e);
         }
     }
 }

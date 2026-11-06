@@ -1,0 +1,110 @@
+name: Publish verified NeoForge v0.5.0 (manual only)
+on:
+  workflow_dispatch:
+    inputs:
+      minecraft:
+        description: 'Exactly one Minecraft version (never a range)'
+        type: choice
+        required: true
+        options:
+          - '1.21.1'
+          - '1.21.2'
+          - '1.21.3'
+          - '1.21.4'
+          - '1.21.5'
+          - '1.21.6'
+          - '1.21.7'
+          - '1.21.8'
+          - '1.21.9'
+          - '1.21.10'
+          - '1.21.11'
+permissions:
+  contents: read
+concurrency:
+  group: neoforge-v050-${{ inputs.minecraft }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: neoforge
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Resolve pinned loader for selected game
+        id: loader
+        shell: bash
+        run: |
+          case "${{ inputs.minecraft }}" in
+            1.21.1) v=21.1.265 ;;
+            1.21.2) v=21.2.1-beta ;;
+            1.21.3) v=21.3.100 ;;
+            1.21.4) v=21.4.161 ;;
+            1.21.5) v=21.5.101 ;;
+            1.21.6) v=21.6.20-beta ;;
+            1.21.7) v=21.7.25-beta ;;
+            1.21.8) v=21.8.57 ;;
+            1.21.9) v=21.9.16-beta ;;
+            1.21.10) v=21.10.64 ;;
+            1.21.11) v=21.11.48 ;;
+            *) echo 'Unsupported Minecraft version'; exit 1 ;;
+          esac
+          echo "neo=$v" >> "$GITHUB_OUTPUT"
+      - name: Build and test selected NeoForge version
+        run: gradle clean build --no-daemon "-Pminecraft_version=${{ inputs.minecraft }}" "-Pneo_version=${{ steps.loader.outputs.neo }}" "-Pmod_version=0.5.0-neoforge-${{ inputs.minecraft }}"
+      - name: Verify JAR and strict game version
+        shell: bash
+        run: |
+          mkdir -p dist
+          jar="build/libs/lagpanic-neoforge-${{ inputs.minecraft }}-0.5.0-neoforge-${{ inputs.minecraft }}.jar"
+          test -f "$jar"
+          unzip -l "$jar" | grep -q 'META-INF/neoforge.mods.toml'
+          unzip -l "$jar" | grep -q 'EntityRenderDispatcherMixin.class'
+          unzip -l "$jar" | grep -q 'ParticleEngineMixin.class'
+          unzip -p "$jar" META-INF/neoforge.mods.toml | grep -Fq 'versionRange="[${{ inputs.minecraft }},${{ inputs.minecraft }}]"'
+          cp "$jar" "dist/lagpanic-neoforge-${{ inputs.minecraft }}.jar"
+      - name: Install Linux virtual display for startup check
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq xvfb libgl1-mesa-dri
+      - name: Smoke-test modded client startup
+        shell: bash
+        run: |
+          set +e
+          export LIBGL_ALWAYS_SOFTWARE=1
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout --signal=TERM 240s gradle runClient --no-daemon "-Pminecraft_version=${{ inputs.minecraft }}" "-Pneo_version=${{ steps.loader.outputs.neo }}" > publish-smoke.log 2>&1
+          result=$?
+          set -e
+          tail -n 60 publish-smoke.log
+          if [[ "$result" != 0 && "$result" != 124 ]]; then exit 1; fi
+          if grep -Ei 'Mixin apply failed|MixinTransformerError|FATAL|Exception in thread|ModLoadingException' publish-smoke.log runs/client/logs/latest.log 2>/dev/null; then exit 1; fi
+          grep -E 'Sound engine started|OpenAL initialized|Created: [0-9]+x[0-9]+x' publish-smoke.log runs/client/logs/latest.log
+      - name: Publish exactly one verified version to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files: neoforge/dist/lagpanic-neoforge-${{ inputs.minecraft }}.jar
+          name: Lag Panic v0.5.0 — NeoForge ${{ inputs.minecraft }}
+          version: v0.5.0-neoforge-${{ inputs.minecraft }}
+          version-type: release
+          loaders: neoforge
+          game-versions: ${{ inputs.minecraft }}
+          game-version-filter: none
+          environment: client
+          fail-mode: fail
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: neoforge-${{ inputs.minecraft }}-publishing-evidence
+          path: |
+            neoforge/publish-smoke.log
+            neoforge/runs/client/logs/*.log
+          if-no-files-found: ignore
