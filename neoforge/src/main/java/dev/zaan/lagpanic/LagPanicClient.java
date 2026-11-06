@@ -173,7 +173,9 @@ public final class LagPanicClient {
             snapshot.recover(client.options);
             client.options.save();
         }
-        GraphicsSnapshot.clearBackup();
+        if (!GraphicsSnapshot.clearBackup()) {
+            System.err.println("[LagPanic] Recovery backup remains on disk; will retry at next startup.");
+        }
         TELEMETRY.deactivated(System.nanoTime());
         snapshot = null;
         active = false;
