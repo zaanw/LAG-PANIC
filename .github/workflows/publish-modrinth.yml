@@ -75,12 +75,24 @@ jobs:
             "-Pfabric_api_version=${{ matrix.fabric_api }}" \
             "-Pmod_version=${RELEASE_TAG#v}-fabric-${{ matrix.minecraft }}"
 
+      - name: Select only the runnable JAR
+        shell: bash
+        run: |
+          mkdir -p dist
+          mapfile -t jars < <(find build/libs -maxdepth 1 -type f -name 'lagpanic-fabric-*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' ! -name '*-javadoc.jar')
+          if [[ ${#jars[@]} -ne 1 ]]; then
+            printf 'Expected exactly one runnable jar, found %s\\n' "${#jars[@]}"
+            printf '%s\\n' "${jars[@]}"
+            exit 1
+          fi
+          cp "${jars[0]}" dist/lagpanic-fabric-${{ matrix.minecraft }}.jar
+
       - name: Publish one runnable JAR to Modrinth
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files-primary: build/libs/lagpanic-fabric-${{ matrix.minecraft }}-*.jar
+          files-primary: dist/lagpanic-fabric-${{ matrix.minecraft }}.jar
           files-secondary: ''
           name: "Lag Panic ${{ github.event.release.tag_name }} — Fabric ${{ matrix.minecraft }}"
           version: "${{ github.event.release.tag_name }}-fabric-${{ matrix.minecraft }}"
