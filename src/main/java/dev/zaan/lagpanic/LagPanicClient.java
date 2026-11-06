@@ -27,6 +27,8 @@ public final class LagPanicClient implements ClientModInitializer {
     private static long lastAutomaticChange;
     private static long lastLowFpsNanos;
     private static int sampleTickCounter;
+    private static boolean monitoringEnabled;
+    private static int lowFpsCheckTicks;
     private static MemoryPressure.Heap cachedHeap;
     private static int stage = 0;
     private static int stageWait = 0;
@@ -60,9 +62,10 @@ public final class LagPanicClient implements ClientModInitializer {
         HudRenderCallback.EVENT.register(
                 (graphics, tracker) -> {
 
+                    // STANDBY without Auto Panic or overlay does no per-frame work.
+                    if (!config.debugOverlay && !(config.auto && config.autoWhenSlowFps)) return;
                     Minecraft client = Minecraft.getInstance();
-                    if (config.auto && config.autoWhenSlowFps
-                            && client.level != null && client.player != null
+                    if (client.level != null && client.player != null
                             && client.screen == null) {
                         FRAMES.sample(System.nanoTime());
                     }
@@ -166,6 +169,21 @@ public final class LagPanicClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft client) {
+        // Idle STANDBY must not constantly query memory / GC, scan frame windows,
+        // or inspect tick spikes. Keep keybindings active for instant activation.
+        if (!active && !config.auto && !config.debugOverlay) {
+            if (monitoringEnabled) {
+                DETECTOR.reset();
+                FRAMES.reset();
+                cachedHeap = null;
+                lastLowFpsNanos = 0L;
+                sampleTickCounter = 0;
+                lowFpsCheckTicks = 0;
+                monitoringEnabled = false;
+            }
+            return;
+        }
+        monitoringEnabled = true;
         if (client.level == null || client.player == null) {
             if (active) deactivate(client);
             DETECTOR.reset();
@@ -197,7 +215,11 @@ public final class LagPanicClient implements ClientModInitializer {
             FRAMES.reset();
             return;
         }
-        boolean lowFps = config.autoWhenSlowFps && FRAMES.sustainedLowFps(config.lowFpsThreshold);
+        // Sampling is per-frame, but checking the 120-frame window every client tick
+        // is unnecessary. Ten ticks between decisions keeps this responsive.
+        boolean lowFps = config.autoWhenSlowFps && ++lowFpsCheckTicks >= 10
+                && FRAMES.sustainedLowFps(config.lowFpsThreshold);
+        if (lowFpsCheckTicks >= 10) lowFpsCheckTicks = 0;
         if (lowFps) lastLowFpsNanos = now;
         boolean trigger = spikeTrigger || lowFps;
 
