@@ -92,8 +92,7 @@ jobs:
         with:
           modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          files-primary: dist/lagpanic-fabric-${{ matrix.minecraft }}.jar
-          files-secondary: ''
+          files: dist/lagpanic-fabric-${{ matrix.minecraft }}.jar
           name: "Lag Panic ${{ github.event.release.tag_name }} — Fabric ${{ matrix.minecraft }}"
           version: "${{ github.event.release.tag_name }}-fabric-${{ matrix.minecraft }}"
           version-type: release
