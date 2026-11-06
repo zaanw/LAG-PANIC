@@ -1,0 +1,95 @@
+name: Publish tested Fabric builds to Modrinth
+
+# Nothing is uploaded on ordinary pushes or pull requests.
+# Publish a GitHub Release only after reviewing the changelog and testing.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modrinth-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish Fabric ${{ matrix.minecraft }}
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - minecraft: '1.21.1'
+            fabric_api: '0.116.13+1.21.1'
+          - minecraft: '1.21.2'
+            fabric_api: '0.106.1+1.21.2'
+          - minecraft: '1.21.3'
+            fabric_api: '0.114.1+1.21.3'
+          - minecraft: '1.21.4'
+            fabric_api: '0.119.3+1.21.4'
+          - minecraft: '1.21.5'
+            fabric_api: '0.124.2+1.21.5'
+          - minecraft: '1.21.6'
+            fabric_api: '0.128.2+1.21.6'
+          - minecraft: '1.21.7'
+            fabric_api: '0.128.1+1.21.7'
+          - minecraft: '1.21.8'
+            fabric_api: '0.136.1+1.21.8'
+          - minecraft: '1.21.9'
+            fabric_api: '0.134.0+1.21.9'
+          - minecraft: '1.21.10'
+            fabric_api: '0.138.4+1.21.10'
+          - minecraft: '1.21.11'
+            fabric_api: '0.141.6+1.21.11'
+    steps:
+      - name: Checkout tagged source
+        uses: actions/checkout@v4
+
+      - name: Verify publishing configuration
+        env:
+          MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          test -n "$MODRINTH_PROJECT_ID" || { echo "::error::Set repository variable MODRINTH_PROJECT_ID (actual project ID, not URL)."; exit 1; }
+          test -n "$MODRINTH_TOKEN" || { echo "::error::Set repository secret MODRINTH_TOKEN."; exit 1; }
+          test -f src/main/resources/fabric.mod.json || { echo "::error::Missing Fabric source on release tag."; exit 1; }
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.2.1'
+
+      - name: Build and test Fabric ${{ matrix.minecraft }}
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gradle clean build --no-daemon --stacktrace \
+            "-Pminecraft_version=${{ matrix.minecraft }}" \
+            "-Pfabric_api_version=${{ matrix.fabric_api }}" \
+            "-Pmod_version=${RELEASE_TAG#v}-fabric-${{ matrix.minecraft }}"
+
+      - name: Publish one runnable JAR to Modrinth
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          files-primary: build/libs/lagpanic-fabric-${{ matrix.minecraft }}-*.jar
+          files-secondary: ''
+          name: "Lag Panic ${{ github.event.release.tag_name }} — Fabric ${{ matrix.minecraft }}"
+          version: "${{ github.event.release.tag_name }}-fabric-${{ matrix.minecraft }}"
+          version-type: release
+          changelog: ${{ github.event.release.body }}
+          loaders: fabric
+          game-versions: ${{ matrix.minecraft }}
+          game-version-filter: none
+          environment: client
+          dependencies: |
+            fabric-api(required){modrinth:P7dR8mSH}
+          fail-mode: fail
