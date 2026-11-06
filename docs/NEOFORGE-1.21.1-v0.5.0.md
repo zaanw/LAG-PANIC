@@ -32,6 +32,8 @@ The dedicated CI workflow `.github/workflows/neoforge-v050.yml` uses Java 21 and
 4. Compare performance using repeatable test conditions and actual frame timings.
 5. Release a **new NeoForge v0.5.0 artifact**, without overwriting Fabric or Forge releases.
 
-Fabric-specific render mixins for hiding primed TNT and explosion particles have **not** been ported to NeoForge. These settings should not be advertised as working until dedicated loader support is implemented and tested.
+NeoForge client-only mixins for hiding **rendered primed TNT** and filtering **explosion particles** are now included, and NeoForge metadata declares their config. They do **not** remove TNT entities or server-side explosion simulation. The actual hooks still require in-game runtime verification before release.
+
+CI also attempts a virtual-display client startup. This is a **startup smoke test**, not a replacement for testing F8/F9, gameplay, high TNT loads, and crash recovery in Minecraft.
 
 The existing Fabric publishing pipeline and previously released Modrinth files are untouched.
