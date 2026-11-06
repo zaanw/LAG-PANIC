@@ -23,7 +23,7 @@ java {
 loom { runs { client { client() } } }
 
 tasks.withType(JavaCompile).configureEach {
-    options.release = 21
+    options.release = project.java_target.toInteger()
     options.encoding = 'UTF-8'
 }
 test { useJUnitPlatform() }
@@ -32,13 +32,15 @@ processResources {
     inputs.properties([
         version: project.version,
         minecraft_version: project.minecraft_version,
-        loader_version: project.loader_version
+        loader_version: project.loader_version,
+        java_target: project.java_target
     ])
     filesMatching('fabric.mod.json') {
         expand(
             version: project.version,
             minecraft_version: project.minecraft_version,
-            loader_version: project.loader_version
+            loader_version: project.loader_version,
+            java_target: project.java_target
         )
     }
 }
