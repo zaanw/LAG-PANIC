@@ -22,6 +22,8 @@ public final class Config {
     public boolean debugOverlay = false;
     public boolean hidePrimedTnt = false;
     public boolean hideExplosionParticles = false;
+    // Nuclear mode can reduce visual load without modifying world simulation.
+    public boolean nuclearExplosionGuard = true;
 
     public boolean allowExperimentalGc = false;
     public int gcThresholdPercent = 85;
