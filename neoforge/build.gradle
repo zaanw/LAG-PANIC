@@ -5,7 +5,8 @@ plugins {
 version = project.mod_version
 group = 'dev.zaan'
 base { archivesName = "lagpanic-neoforge-${project.minecraft_version}" }
-java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+def javaTarget = (findProperty('java_target') ?: '25').toString().toInteger()
+java.toolchain.languageVersion = JavaLanguageVersion.of(javaTarget)
 neoForge {
     version = project.neo_version
     runs {
@@ -28,7 +29,7 @@ dependencies {
 tasks.named('test') { useJUnitPlatform() }
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
-    options.release = 21
+    options.release = javaTarget
 }
 processResources {
     inputs.property 'version', project.version
