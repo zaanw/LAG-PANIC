@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import net.neoforged.fml.loading.FMLPaths;
 
 public final class Config {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static Gson gson() { return new GsonBuilder().setPrettyPrinting().create(); }
     public boolean auto = false;
 
     public boolean autoWhenSlowFps = true;
@@ -48,7 +48,7 @@ public final class Config {
     }
     public static Config load() {
         try (var reader = Files.newBufferedReader(path(), StandardCharsets.UTF_8)) {
-            Config c = GSON.fromJson(reader, Config.class);
+            Config c = gson().fromJson(reader, Config.class);
             if (c != null) { c.validate(); return c; }
         } catch (Exception ignored) { }
         return new Config();
@@ -58,7 +58,7 @@ public final class Config {
         try {
             Files.createDirectories(path().getParent());
             try (var writer = Files.newBufferedWriter(path(), StandardCharsets.UTF_8)) {
-                GSON.toJson(this, writer);
+                gson().toJson(this, writer);
             }
         } catch (Exception e) {
             System.err.println("[LagPanic] Could not save settings: " + e);
