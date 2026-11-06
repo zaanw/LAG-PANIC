@@ -7,7 +7,7 @@ This workflow has two modes:
 
 ## Source pinning
 
-1.20–1.20.6 builds use source commit `8934bf953acf1b127c7c86e5aec4a536a78be0b6` from `feat/fabric-1.20.x`.
+1.20–1.20.6 builds use source commit `b475c420f1ed735e5d3916a9d890782eae729d19` from `feat/fabric-1.20.x`.
 
 1.21.1–1.21.11 builds use the GitHub Release **tag** source. This is the current main-line mod.
 
