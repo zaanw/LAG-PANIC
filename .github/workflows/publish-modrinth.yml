@@ -1,8 +1,14 @@
 name: Publish tested Fabric builds to Modrinth
 
-# Nothing is uploaded on ordinary pushes or pull requests.
-# Publish a GitHub Release only after reviewing the changelog and testing.
+# Release-gated publishing. Pushes and PRs compile/test but NEVER publish.
 on:
+  push:
+    branches: ['feat/autorlease-21-fabric-versions']
+    paths:
+      - '.github/workflows/publish-modrinth.yml'
+  pull_request:
+    paths:
+      - '.github/workflows/publish-modrinth.yml'
   release:
     types: [published]
 
@@ -10,84 +16,182 @@ permissions:
   contents: read
 
 concurrency:
-  group: modrinth-${{ github.event.release.tag_name }}
+  group: modrinth-${{ github.event.release.tag_name || github.sha }}
   cancel-in-progress: false
 
 jobs:
   publish:
-    name: Publish Fabric ${{ matrix.minecraft }}
-    if: ${{ !github.event.release.prerelease }}
+    name: ${{ github.event_name == 'release' && 'Publish' || 'Verify' }} Fabric ${{ matrix.minecraft }}
+    # Never deploy a prerelease. Publishing requires a fully published GitHub Release.
+    if: ${{ github.event_name != 'release' || !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
+          - minecraft: '1.20'
+            fabric_api: '0.83.0+1.20'
+            java_target: '17'
+            gradle_version: '9.2.1'
+            source_ref: '713d68f378137ae528c43a58122df606d9c20ea7'
+          - minecraft: '1.20.1'
+            fabric_api: '0.92.9+1.20.1'
+            java_target: '17'
+            gradle_version: '9.2.1'
+            source_ref: '713d68f378137ae528c43a58122df606d9c20ea7'
+          - minecraft: '1.20.2'
+            fabric_api: '0.91.6+1.20.2'
+            java_target: '17'
+            gradle_version: '9.2.1'
+            source_ref: '713d68f378137ae528c43a58122df606d9c20ea7'
+          - minecraft: '1.20.3'
+            fabric_api: '0.91.1+1.20.3'
+            java_target: '17'
+            gradle_version: '9.2.1'
+            source_ref: '713d68f378137ae528c43a58122df606d9c20ea7'
+          - minecraft: '1.20.4'
+            fabric_api: '0.97.3+1.20.4'
+            java_target: '17'
+            gradle_version: '9.2.1'
+            source_ref: '713d68f378137ae528c43a58122df606d9c20ea7'
+          - minecraft: '1.20.5'
+            fabric_api: '0.97.8+1.20.5'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: '713d68f378137ae528c43a58122df606d9c20ea7'
+          - minecraft: '1.20.6'
+            fabric_api: '0.100.8+1.20.6'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: '713d68f378137ae528c43a58122df606d9c20ea7'
           - minecraft: '1.21.1'
             fabric_api: '0.116.13+1.21.1'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.2'
             fabric_api: '0.106.1+1.21.2'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.3'
             fabric_api: '0.114.1+1.21.3'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.4'
             fabric_api: '0.119.3+1.21.4'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.5'
             fabric_api: '0.124.2+1.21.5'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.6'
             fabric_api: '0.128.2+1.21.6'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.7'
             fabric_api: '0.128.1+1.21.7'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.8'
             fabric_api: '0.136.1+1.21.8'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.9'
             fabric_api: '0.134.0+1.21.9'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.10'
             fabric_api: '0.138.4+1.21.10'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
           - minecraft: '1.21.11'
             fabric_api: '0.141.6+1.21.11'
+            java_target: '21'
+            gradle_version: '9.2.1'
+            source_ref: 'release'
+          - minecraft: '26.1'
+            fabric_api: '0.145.1+26.1'
+            java_target: '25'
+            gradle_version: '9.6.0'
+            source_ref: '7c17d3092f5c473da11513613809018bd5b26aa4'
+          - minecraft: '26.2'
+            fabric_api: '0.160.0+26.2'
+            java_target: '25'
+            gradle_version: '9.6.0'
+            source_ref: '7c17d3092f5c473da11513613809018bd5b26aa4'
+          - minecraft: '26.3'
+            fabric_api: '0.165.2+26.3'
+            java_target: '25'
+            gradle_version: '9.6.0'
+            source_ref: '7c17d3092f5c473da11513613809018bd5b26aa4'
     steps:
-      - name: Checkout tagged source
+      # 1.21.x uses the release's tagged source. 1.20.x and 26.x use
+      # pinned, CI-tested port commits; they cannot compile from 1.21.x source.
+      - name: Checkout source for ${{ matrix.minecraft }}
         uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.source_ref == 'release' && (github.event.release.tag_name || github.event.pull_request.base.sha || github.sha) || matrix.source_ref }}
+          persist-credentials: false
 
-      - name: Verify publishing configuration
+      - name: Verify publisher configuration (release only)
+        if: ${{ github.event_name == 'release' }}
         env:
           MODRINTH_PROJECT_ID: ${{ vars.MODRINTH_PROJECT_ID }}
           MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
         run: |
-          test -n "$MODRINTH_PROJECT_ID" || { echo "::error::Set repository variable MODRINTH_PROJECT_ID (actual project ID, not URL)."; exit 1; }
-          test -n "$MODRINTH_TOKEN" || { echo "::error::Set repository secret MODRINTH_TOKEN."; exit 1; }
-          test -f src/main/resources/fabric.mod.json || { echo "::error::Missing Fabric source on release tag."; exit 1; }
+          test -n "$MODRINTH_PROJECT_ID" || { echo "::error::Set MODRINTH_PROJECT_ID repository variable."; exit 1; }
+          test -n "$MODRINTH_TOKEN" || { echo "::error::Set MODRINTH_TOKEN repository secret."; exit 1; }
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: '25'
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '9.2.1'
+          gradle-version: ${{ matrix.gradle_version }}
 
       - name: Build and test Fabric ${{ matrix.minecraft }}
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          VERSION_TAG: ${{ github.event.release.tag_name || 'v0.4.1-ci' }}
         run: |
           gradle clean build --no-daemon --stacktrace \
             "-Pminecraft_version=${{ matrix.minecraft }}" \
             "-Pfabric_api_version=${{ matrix.fabric_api }}" \
-            "-Pmod_version=${RELEASE_TAG#v}-fabric-${{ matrix.minecraft }}"
+            "-Pjava_target=${{ matrix.java_target }}" \
+            "-Pmod_version=${VERSION_TAG#v}-fabric-${{ matrix.minecraft }}"
 
-      - name: Select only the runnable JAR
+      - name: Select runnable JAR (exclude sources/dev)
         shell: bash
         run: |
           mkdir -p dist
-          mapfile -t jars < <(find build/libs -maxdepth 1 -type f -name 'lagpanic-fabric-*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' ! -name '*-javadoc.jar')
+          mapfile -t jars < <(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' ! -name '*-javadoc.jar' | sort)
           if [[ ${#jars[@]} -ne 1 ]]; then
-            printf 'Expected exactly one runnable jar, found %s\\n' "${#jars[@]}"
+            echo "::error::Expected exactly one runnable JAR, found ${#jars[@]}"
             printf '%s\\n' "${jars[@]}"
             exit 1
           fi
-          cp "${jars[0]}" dist/lagpanic-fabric-${{ matrix.minecraft }}.jar
+          cp "${jars[0]}" "dist/lagpanic-fabric-${{ matrix.minecraft }}.jar"
 
-      - name: Publish one runnable JAR to Modrinth
+      - name: Upload test artifact (no Modrinth publishing on PR/push)
+        if: ${{ github.event_name != 'release' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: lagpanic-fabric-${{ matrix.minecraft }}-verification
+          path: dist/*.jar
+
+      - name: Publish to Modrinth (release only)
+        if: ${{ github.event_name == 'release' }}
         uses: Kir-Antipov/mc-publish@v3.3
         with:
           modrinth-id: ${{ vars.MODRINTH_PROJECT_ID }}
