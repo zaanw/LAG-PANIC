@@ -1,7 +1,11 @@
-plugins { id 'fabric-loom' version "${loom_version}" }
+plugins {
+    id 'net.fabricmc.fabric-loom-remap' version "${loom_version}"
+}
+
 version = project.mod_version
 group = project.maven_group
-base { archivesName = project.archives_base_name }
+base { archivesName = "lagpanic-fabric-${project.minecraft_version}" }
+
 dependencies {
     mappings loom.officialMojangMappings()
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -10,12 +14,31 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
-java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
+    withSourcesJar()
+}
+
 loom { runs { client { client() } } }
 
-tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
 test { useJUnitPlatform() }
+
 processResources {
-    inputs.property 'version', project.version
-    filesMatching('fabric.mod.json') { expand version: project.version }
+    inputs.properties([
+        version: project.version,
+        minecraft_version: project.minecraft_version,
+        loader_version: project.loader_version
+    ])
+    filesMatching('fabric.mod.json') {
+        expand(
+            version: project.version,
+            minecraft_version: project.minecraft_version,
+            loader_version: project.loader_version
+        )
+    }
 }
