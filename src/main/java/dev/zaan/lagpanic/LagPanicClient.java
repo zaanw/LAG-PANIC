@@ -26,6 +26,8 @@ public final class LagPanicClient implements ClientModInitializer {
     private static long lastAutomaticChange;
     private static long lastLowFpsNanos;
     private static int sampleTickCounter;
+    private static boolean monitoringEnabled;
+    private static int lowFpsCheckTicks;
     private static MemoryPressure.Heap cachedHeap;
     private static int stage = 0;
     private static int stageWait = 0;
@@ -46,7 +48,7 @@ public final class LagPanicClient implements ClientModInitializer {
     public static FreezeDiagnostics diagnostics() { return FREEZES; }
     public static String status() {
         if (!recoveryAllowed && attemptedRecovery) return "RECOVERY ERROR: check logs";
-        return active ? "PANIC: " + config.profile : "STANDBY";
+        return active ? "PANIC: " + config.profile : "OFF";
     }
 
     @Override public void onInitializeClient() {
@@ -69,6 +71,7 @@ public final class LagPanicClient implements ClientModInitializer {
                 Identifier.fromNamespaceAndPath("lagpanic", "debug"),
                 (graphics, tracker) -> {
                     // One nanoTime and one array write per rendered frame, ONLY in Auto mode.
+                    if (!config.debugOverlay && !(config.auto && config.autoWhenSlowFps)) return;
                     Minecraft client = Minecraft.getInstance();
                     if (config.auto && config.autoWhenSlowFps
                             && client.level != null && client.player != null
@@ -188,6 +191,20 @@ public final class LagPanicClient implements ClientModInitializer {
     }
 
     private static void tick(Minecraft client) {
+        // Inactive standby does no periodic diagnostics unless auto mode or HUD is enabled.
+        if (!active && !config.auto && !config.debugOverlay) {
+            if (monitoringEnabled) {
+                DETECTOR.reset();
+                FRAMES.reset();
+                cachedHeap = null;
+                lastLowFpsNanos = 0L;
+                sampleTickCounter = 0;
+                lowFpsCheckTicks = 0;
+                monitoringEnabled = false;
+            }
+            return;
+        }
+        monitoringEnabled = true;
         if (client.level == null || client.player == null) {
             if (active) deactivate(client);
             DETECTOR.reset();
