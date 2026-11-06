@@ -3,6 +3,7 @@ package dev.zaan.lagpanic.forge;
 import dev.zaan.lagpanic.LagPanicClient;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
+import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -22,6 +23,11 @@ public final class ForgeEntrypoint {
         @SubscribeEvent
         public static void onClientTick(TickEvent.ClientTickEvent event) {
             LagPanicClient.onClientTick(event);
+        }
+
+        @SubscribeEvent
+        public static void onRenderGui(RenderGuiEvent.Post event) {
+            LagPanicClient.onRenderGui(event);
         }
     }
 }
