@@ -57,6 +57,8 @@ public final class SettingsScreen extends Screen {
                     () -> c.hidePrimedTnt = !c.hidePrimedTnt);
             option(left, y + row * 6, w, "Hide Explosions: " + bool(c.hideExplosionParticles),
                     () -> c.hideExplosionParticles = !c.hideExplosionParticles);
+            option(right, y + row * 6, w, "Nuclear TNT guard: " + bool(c.nuclearExplosionGuard),
+                    () -> c.nuclearExplosionGuard = !c.nuclearExplosionGuard);
             addRenderableWidget(Button.builder(Component.literal("< Back"), b -> {
                 performancePage = false;
                 rebuildWidgets();
