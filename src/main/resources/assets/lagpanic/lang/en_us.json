@@ -1,6 +1,7 @@
 {
   "key.lagpanic.toggle": "Toggle Lag Panic",
   "key.lagpanic.settings": "Lag Panic Settings",
-  "key.category.lagpanic": "Lag Panic",
-  "key.lagpanic.settings_fallback": "Lag Panic Settings (F9 fallback)"
+  "key.categories.lagpanic": "Lag Panic",
+  "key.category.lagpanic.main": "Lag Panic",
+  "key.category.lagpanic": "Lag Panic"
 }
