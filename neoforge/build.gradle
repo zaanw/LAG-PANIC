@@ -35,3 +35,22 @@ processResources {
     inputs.property 'minecraft_version', project.minecraft_version
     filesMatching('META-INF/neoforge.mods.toml') { expand(version: project.version, minecraft_version: project.minecraft_version) }
 }
+
+ 
+// Mojang renamed ResourceLocation to Identifier in Minecraft 1.21.11.
+// Generate an isolated, version-specific source tree rather than altering the
+// checked-in 1.21.1 sources or pretending one binary works on all versions.
+if (project.minecraft_version == '1.21.11') {
+    def generatedSrc = layout.buildDirectory.dir('generated/lagpanic-1.21.11/java')
+    tasks.register('generate12111Sources', Copy) {
+        from('src/main/java')
+        into(generatedSrc)
+        include('**/*.java')
+        filter { line ->
+            line.replace('net.minecraft.resources.ResourceLocation', 'net.minecraft.resources.Identifier')
+                .replace('ResourceLocation.fromNamespaceAndPath', 'Identifier.fromNamespaceAndPath')
+        }
+    }
+    sourceSets.main.java.setSrcDirs([generatedSrc])
+    tasks.named('compileJava') { dependsOn 'generate12111Sources' }
+}
