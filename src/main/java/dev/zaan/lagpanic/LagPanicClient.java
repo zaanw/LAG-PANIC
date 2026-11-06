@@ -84,7 +84,7 @@ public final class LagPanicClient implements ClientModInitializer {
             }
             while (panic.consumeClick()) toggle(client);
             while (settings.consumeClick()) openSettings(client);
-                        tick(client);
+            tick(client);
         });
     }
 
@@ -94,7 +94,10 @@ public final class LagPanicClient implements ClientModInitializer {
             try {
                 categoryClass = Class.forName("net.minecraft.client.KeyMapping$Category");
             } catch (ClassNotFoundException legacyMinecraft) {
-                return new KeyMapping(translationKey, InputConstants.Type.KEYSYM,
+                Constructor<KeyMapping> legacyConstructor = KeyMapping.class.getConstructor(
+                        String.class, InputConstants.Type.class, int.class, String.class);
+                return legacyConstructor.newInstance(
+                        translationKey, InputConstants.Type.KEYSYM,
                         keyCode, "key.categories.lagpanic");
             }
 
