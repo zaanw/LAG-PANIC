@@ -89,6 +89,9 @@ public final class LagPanicClient implements ClientModInitializer {
                     graphics.text(client.font, "Long stalls: " + FREEZES.count() + " | Last: "
                         + FREEZES.lastPauseMillis() + "ms | GC observed: "
                         + FREEZES.lastGcDeltaMillis() + "ms", 11, 35, 0xFF93B0CC);
+                    graphics.text(client.font, "Session Panic: " + (TELEMETRY.manualActivations() + TELEMETRY.autoActivations())
+                        + " | Active: " + TELEMETRY.activeSeconds(System.nanoTime()) + "s | Last: "
+                        + TELEMETRY.lastTriggerLabel(), 11, 47, 0xFF93B0CC);
                 });
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
