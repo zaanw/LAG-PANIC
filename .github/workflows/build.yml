@@ -1,7 +1,7 @@
 name: Fabric 1.21.x version matrix
 on:
   push:
-    branches: ['feat/fabric-matrix']
+    branches: ['feat/fabric-matrix', 'feat/explosion-stress-guard']
     paths:
       - 'src/**'
       - 'build.gradle'
